@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.regex.*;
 
 public class assign1_9 extends JFrame {
+	// hellow people
     private JTextArea historyArea;
     private JTextField inputField;
     private DrawingPanel drawingPanel;
