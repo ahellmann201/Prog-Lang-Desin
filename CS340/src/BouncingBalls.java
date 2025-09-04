@@ -19,8 +19,8 @@ public class BouncingBalls extends JPanel implements ActionListener {
     private static final int MAX_BALL_SIZE = 30;      // Size at which balls automatically explode
     
     // Collision settings
-    private static final double SIZE_INCREASE_MULTIPLIER = 5;  // Size multiplier when balls combine
-    private static final int EXPLOSION_BALL_MULTIPLIER = 5;       // Multiplier for balls created during explosion
+    private static final double SIZE_INCREASE_MULTIPLIER = 10;  // Size multiplier when balls combine
+    private static final int EXPLOSION_BALL_MULTIPLIER = 1;       // Multiplier for balls created during explosion
     
     // Timing settings
     private static final int DELAY = 15;
