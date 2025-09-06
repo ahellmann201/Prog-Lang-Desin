@@ -11,13 +11,14 @@ import javax.imageio.ImageIO;
 
 // Drawing panel class
 class PaintPanel extends JPanel {
-    private BufferedImage canvas;
+	private BufferedImage canvas;
     private Graphics2D g2d;
     private int startX, startY;
     private int currentX, currentY;
     private Color currentColor = Color.BLACK;
     private int brushSize = 5;
     private String tool = "Pencil";
+    private String brushType = "Marker"; // Default brush type
     private ArrayList<Shape> shapes = new ArrayList<>();
     private ArrayList<ImageElement> images = new ArrayList<>();
     private ArrayList<TextElement> texts = new ArrayList<>();
@@ -43,6 +44,7 @@ class PaintPanel extends JPanel {
     private JDialog textEditDialog;
     private int textX, textY;
     private Shape selectedShape = null;
+    
     public PaintPanel() {
         setBackground(Color.WHITE);
         setPreferredSize(new Dimension(800, 600));
@@ -55,7 +57,7 @@ class PaintPanel extends JPanel {
         createTextEditDialog();
         
         addKeyListener(new KeyAdapter() {
-        	public void keyPressed(KeyEvent e) {
+            public void keyPressed(KeyEvent e) {
                 if ((e.getKeyCode() == KeyEvent.VK_DELETE || e.getKeyCode() == KeyEvent.VK_BACK_SPACE)) {
                     if (selectedImage != null) {
                         // Delete selected image
@@ -93,7 +95,7 @@ class PaintPanel extends JPanel {
         
         addMouseListener(new MouseAdapter() {
         	@Override
-            public void mousePressed(MouseEvent e) {
+        	public void mousePressed(MouseEvent e) {
                 requestFocusInWindow(); // Ensure panel has focus for keyboard events
                 startX = e.getX();
                 startY = e.getY();
@@ -196,7 +198,7 @@ class PaintPanel extends JPanel {
                         initCanvas();
                     }
                     g2d.setColor(tool.equals("Eraser") ? Color.WHITE : currentColor);
-                    g2d.setStroke(new BasicStroke(brushSize, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                    setBrushStroke(); // Set brush stroke based on brush type
                     g2d.drawLine(startX, startY, startX, startY);
                 } else {
                     currentShape = new Shape(tool, startX, startY, startX, startY, 
@@ -290,7 +292,7 @@ class PaintPanel extends JPanel {
                 if (tool.equals("Pencil") || tool.equals("Eraser")) {
                     if (canvas != null) {
                         g2d.setColor(tool.equals("Eraser") ? Color.WHITE : currentColor);
-                        g2d.setStroke(new BasicStroke(brushSize, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                        setBrushStroke(); // Set brush stroke based on brush type
                         g2d.drawLine(startX, startY, currentX, currentY);
                         startX = currentX;
                         startY = currentY;
@@ -724,7 +726,34 @@ class PaintPanel extends JPanel {
         }
     }
     
-    
+    private void setBrushStroke() {
+        switch (brushType) {
+            case "Marker":
+                // Smooth, solid stroke with rounded ends
+                g2d.setStroke(new BasicStroke(brushSize, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                break;
+            case "Pen":
+                // Sharp, precise stroke with square ends
+                g2d.setStroke(new BasicStroke(brushSize, BasicStroke.CAP_SQUARE, BasicStroke.JOIN_MITER));
+                break;
+            case "Pencil":
+                // Slightly textured stroke for pencil effect
+                g2d.setStroke(new BasicStroke(brushSize, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                // Add some transparency for pencil-like effect
+                Color pencilColor = new Color(currentColor.getRed(), currentColor.getGreen(), 
+                                            currentColor.getBlue(), 200);
+                g2d.setColor(pencilColor);
+                break;
+            case "Crayon":
+                // Rough, textured stroke for crayon effect
+                g2d.setStroke(new BasicStroke(brushSize, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                // Add some texture by using a custom stroke
+                float[] crayonPattern = {2f, 3f};
+                g2d.setStroke(new BasicStroke(brushSize, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 
+                                            1.0f, crayonPattern, 0f));
+                break;
+        }
+    }
     
     public void setCurrentColor(Color color) {
         this.currentColor = color;
@@ -737,14 +766,18 @@ class PaintPanel extends JPanel {
         this.brushSize = size;
     }
     
+    public void setBrushType(String brushType) {
+        this.brushType = brushType;
+    }
+    
  // Update setTool to deselect shapes when changing tools
     public void setTool(String tool) {
         this.tool = tool;
-        selectedImage = null; // Deselect any selected image when changing tools
-        selectedText = null; // Deselect any selected text when changing tools
-        selectedShape = null; // Deselect any selected shape when changing tools
-        selectionRect = null; // Clear selection rectangle when changing tools
-        cropRect = null; // Clear crop rectangle when changing tools
+        selectedImage = null;
+        selectedText = null;
+        selectedShape = null;
+        selectionRect = null;
+        cropRect = null;
         repaint();
     }
     
@@ -835,5 +868,31 @@ class PaintPanel extends JPanel {
             g2d.setColor(currentColor);
         }
         repaint();
+    }
+    
+    
+    private BasicStroke getBrushStroke(String brushType, int size) {
+        switch (brushType) {
+            case "Pen":
+                // Pen: thin, precise line with square cap
+                return new BasicStroke(Math.max(1, size/2), BasicStroke.CAP_SQUARE, BasicStroke.JOIN_MITER);
+            
+            case "Pencil":
+                // Pencil: slightly textured, medium opacity
+                // We'll simulate pencil texture with a custom stroke
+                float[] dashPattern = {1, 2}; // Creates a slightly broken line
+                return new BasicStroke(size, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 
+                                      1.0f, dashPattern, 0);
+            
+            case "Crayon":
+                // Crayon: rough, textured stroke with variable width
+                return new BasicStroke(size * 1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 
+                                      1.0f, null, 0);
+            
+            case "Marker":
+            default:
+                // Marker: smooth, solid stroke (current default)
+                return new BasicStroke(size, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
+        }
     }
 }

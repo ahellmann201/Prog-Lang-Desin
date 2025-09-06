@@ -1,11 +1,9 @@
-// PaintFrame.java
 package SM_PAINT;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
-
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 // Main frame class
@@ -14,6 +12,7 @@ class PaintFrame extends JFrame {
     private Color currentColor = Color.BLACK;
     private int brushSize = 5;
     private String tool = "Pencil";
+    private String brushType = "Marker"; // Default brush type
     
     public PaintFrame() {
         setTitle("Simple Paint");
@@ -58,6 +57,15 @@ class PaintFrame extends JFrame {
         });
         toolbar.add(new JLabel("Shapes:"));
         toolbar.add(shapeCombo);
+        
+        // Brush types dropdown
+        JComboBox<String> brushCombo = new JComboBox<>(new String[]{"Marker", "Pen", "Pencil", "Crayon"});
+        brushCombo.addActionListener(e -> {
+            brushType = (String) brushCombo.getSelectedItem();
+            paintPanel.setBrushType(brushType);
+        });
+        toolbar.add(new JLabel("Brushes:"));
+        toolbar.add(brushCombo);
         
         // Image operations dropdown
         JButton insertButton = new JButton("Insert Image");

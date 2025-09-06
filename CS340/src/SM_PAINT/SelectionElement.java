@@ -53,4 +53,5 @@ class SelectionElement {
     public Rectangle getBounds() {
         return new Rectangle(x, y, width, height);
     }
+    
 }
