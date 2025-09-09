@@ -4,27 +4,28 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
-/****************************************************
-    * Code Generation Module
-    *
-    *    PROGRAMMER:    [Your Name]    *
-    *    COURSE:    CS 1410 - Programming Fundamentals    *
-    *    DATE:    [Date Submitted]    *
-    *    REQUIREMENT:    Assignment 2    *
-    *
-    *    DESCRIPTION:    *
-    *    This module handles the generation and management of shapes, 
-    *    including circles, triangles, rectangles, squares, and polygons.
-    *    It provides methods for creating, storing, and drawing shapes,
-    *    as well as managing loops and variables for the drawing application.
-    *
-    *    COPYRIGHT:    *
-    *    This code is copyright (c)2025 [Your Name] and Dean Zeller.*
-    *
-    *    CREDITS:    *
-    *    Java API Documentation, Course materials
-    *
-    *****************************************************/
+/****************************************************************************
+    * Code Generation Module												*
+    *																		*
+    *    PROGRAMMER:    [Your Name]    										*
+    *    COURSE:  CS340 Programming Lang/Design     						*
+    *    DATE:    [Date Submitted]    										*
+    *    REQUIREMENT:    Assignment 2    									*
+    *																		*
+    *    DESCRIPTION:    													*
+    *    This module handles the generation and management of shapes, 		*
+    *    including circles, triangles, rectangles, squares, and polygons.	*
+    *    It provides methods for creating, storing, and drawing shapes,		*
+    *    as well as managing loops and variables for the drawing 			*
+    *    application.														*
+    *																		*
+    *    COPYRIGHT:    														*
+    *    This code is copyright (c)2025 [Your Name] and Dean Zeller.		*
+    *																		*
+    *    CREDITS:    														*
+    *    Java API Documentation, Course materials							*
+    *																		*
+    ************************************************************************/
 
 public class CodeGeneration {
     private List<Shape> shapes = new ArrayList<>();
@@ -34,12 +35,12 @@ public class CodeGeneration {
     private List<Shape> loopShapes = new ArrayList<>(); // Shapes in the current loop
     private boolean isRecordingLoop = false;
     
-    /****************************************************
-    *    METHOD:    processCircleCommand    *
-    *    DESCRIPTION:    Processes a circle drawing command    *
-    *    PARAMETERS:    command - the command string containing circle parameters    *
-    *    RETURN VALUE:    none    *
-    *****************************************************/
+    /************************************************************************************
+    *    METHOD:    processCircleCommand    											*
+    *    DESCRIPTION:    Processes a circle drawing command    							*
+    *    PARAMETERS:    command - the command string containing circle parameters    	*
+    *    RETURN VALUE:    none    														*
+    ************************************************************************************/
     public void processCircleCommand(String command, InputOutputHandler ioHandler) {
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("circle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
@@ -67,12 +68,12 @@ public class CodeGeneration {
         }
     }
     
-    /****************************************************
-    *    METHOD:    processCircleCommandForLoop    *
-    *    DESCRIPTION:    Processes a circle command for loop recording    *
-    *    PARAMETERS:    command - the command string containing circle parameters    *
-    *    RETURN VALUE:    none    *
-    *****************************************************/
+    /************************************************************************************
+    *    METHOD:    processCircleCommandForLoop    										*
+    *    DESCRIPTION:    Processes a circle command for loop recording    				*
+    *    PARAMETERS:    command - the command string containing circle parameters    	*
+    *    RETURN VALUE:    none    														*
+    *************************************************************************************/
     public void processCircleCommandForLoop(String command, InputOutputHandler ioHandler) {
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("circle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
@@ -94,12 +95,12 @@ public class CodeGeneration {
         }
     }
     
-    /****************************************************
-    *    METHOD:    processTriangleCommand    *
-    *    DESCRIPTION:    Processes a triangle drawing command    *
-    *    PARAMETERS:    command - the command string containing triangle parameters    *
-    *    RETURN VALUE:    none    *
-    *****************************************************/
+    /************************************************************************************
+    *    METHOD:    processTriangleCommand    											*
+    *    DESCRIPTION:    Processes a triangle drawing command    						*
+    *    PARAMETERS:    command - the command string containing triangle parameters    	*
+    *    RETURN VALUE:    none    														*
+    ************************************************************************************/
     public void processTriangleCommand(String command, InputOutputHandler ioHandler) {
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("triangle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
@@ -121,12 +122,12 @@ public class CodeGeneration {
         }
     }
     
-    /****************************************************
-    *    METHOD:    processTriangleCommandForLoop    *
-    *    DESCRIPTION:    Processes a triangle command for loop recording    *
-    *    PARAMETERS:    command - the command string containing triangle parameters    *
-    *    RETURN VALUE:    none    *
-    *****************************************************/
+    /************************************************************************************
+    *    METHOD:    processTriangleCommandForLoop    									*
+    *    DESCRIPTION:    Processes a triangle command for loop recording    			*
+    *    PARAMETERS:    command - the command string containing triangle parameters    	*
+    *    RETURN VALUE:    none    														*
+    ************************************************************************************/
     public void processTriangleCommandForLoop(String command, InputOutputHandler ioHandler) {
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("triangle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
@@ -148,12 +149,12 @@ public class CodeGeneration {
         }
     }
     
-    /****************************************************
-    *    METHOD:    processRectangleCommand    *
-    *    DESCRIPTION:    Processes a rectangle drawing command    *
+    /************************************************************************************
+    *    METHOD:    processRectangleCommand    											*
+    *    DESCRIPTION:    Processes a rectangle drawing command    						*
     *    PARAMETERS:    command - the command string containing rectangle parameters    *
-    *    RETURN VALUE:    none    *
-    *****************************************************/
+    *    RETURN VALUE:    none    														*
+    ************************************************************************************/
     public void processRectangleCommand(String command, InputOutputHandler ioHandler) {
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("rectangle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
@@ -176,12 +177,12 @@ public class CodeGeneration {
         }
     }
     
-    /****************************************************
-    *    METHOD:    processRectangleCommandForLoop    *
-    *    DESCRIPTION:    Processes a rectangle command for loop recording    *
+    /************************************************************************************
+    *    METHOD:    processRectangleCommandForLoop    									*
+    *    DESCRIPTION:    Processes a rectangle command for loop recording    			*
     *    PARAMETERS:    command - the command string containing rectangle parameters    *
-    *    RETURN VALUE:    none    *
-    *****************************************************/
+    *    RETURN VALUE:    none    														*
+    ************************************************************************************/
     public void processRectangleCommandForLoop(String command, InputOutputHandler ioHandler) {
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("rectangle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
@@ -204,12 +205,12 @@ public class CodeGeneration {
         }
     }
     
-    /****************************************************
-    *    METHOD:    processSquareCommand    *
-    *    DESCRIPTION:    Processes a square drawing command    *
-    *    PARAMETERS:    command - the command string containing square parameters    *
-    *    RETURN VALUE:    none    *
-    *****************************************************/
+    /************************************************************************************
+    *    METHOD:    processSquareCommand    											*
+    *    DESCRIPTION:    Processes a square drawing command    							*
+    *    PARAMETERS:    command - the command string containing square parameters    	*
+    *    RETURN VALUE:    none    														*
+    ************************************************************************************/
     public void processSquareCommand(String command, InputOutputHandler ioHandler) {
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("square\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
@@ -231,12 +232,12 @@ public class CodeGeneration {
         }
     }
     
-    /****************************************************
-    *    METHOD:    processSquareCommandForLoop    *
-    *    DESCRIPTION:    Processes a square command for loop recording    *
-    *    PARAMETERS:    command - the command string containing square parameters    *
-    *    RETURN VALUE:    none    *
-    *****************************************************/
+    /************************************************************************************
+    *    METHOD:    processSquareCommandForLoop    										*
+    *    DESCRIPTION:    Processes a square command for loop recording    				*
+    *    PARAMETERS:    command - the command string containing square parameters    	*
+    *    RETURN VALUE:    none    														*
+    ************************************************************************************/
     public void processSquareCommandForLoop(String command, InputOutputHandler ioHandler) {
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("square\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
@@ -258,12 +259,12 @@ public class CodeGeneration {
         }
     }
     
-    /****************************************************
-    *    METHOD:    processPointsCommand    *
-    *    DESCRIPTION:    Processes a polygon drawing command with specified points    *
-    *    PARAMETERS:    command - the command string containing polygon points    *
-    *    RETURN VALUE:    none    *
-    *****************************************************/
+    /************************************************************************************
+    *    METHOD:    processPointsCommand    											*
+    *    DESCRIPTION:    Processes a polygon drawing command with specified points    	*
+    *    PARAMETERS:    command - the command string containing polygon points    		*
+    *    RETURN VALUE:    none    														*
+    ************************************************************************************/
     public void processPointsCommand(String command, InputOutputHandler ioHandler) {
         try {
             String[] parts = command.split(",\\s*");
@@ -289,12 +290,12 @@ public class CodeGeneration {
         }
     }
     
-    /****************************************************
-    *    METHOD:    processPointsCommandForLoop    *
-    *    DESCRIPTION:    Processes a polygon command for loop recording with specified points    *
-    *    PARAMETERS:    command - the command string containing polygon points    *
-    *    RETURN VALUE:    none    *
-    *****************************************************/
+    /********************************************************************************************
+    *    METHOD:    processPointsCommandForLoop    												*
+    *    DESCRIPTION:    Processes a polygon command for loop recording with specified points   *
+    *    PARAMETERS:    command - the command string containing polygon points    				*
+    *    RETURN VALUE:    none    																*
+    ********************************************************************************************/
     public void processPointsCommandForLoop(String command, InputOutputHandler ioHandler) {
         try {
             String[] parts = command.split(",\\s*");
@@ -320,34 +321,34 @@ public class CodeGeneration {
         }
     }
     
-    /****************************************************
-    *    METHOD:    startPolygon    *
-    *    DESCRIPTION:    Initiates polygon drawing mode    *
-    *    PARAMETERS:    ioHandler - the input/output handler for displaying messages    *
-    *    RETURN VALUE:    none    *
-    *****************************************************/
+    /********************************************************************************************
+    *    METHOD:    startPolygon    															*
+    *    DESCRIPTION:    Initiates polygon drawing mode    										*
+    *    PARAMETERS:    ioHandler - the input/output handler for displaying messages    		*
+    *    RETURN VALUE:    none    																*
+    ********************************************************************************************/
     public void startPolygon(InputOutputHandler ioHandler) {
         polygonPoints.clear();
         ioHandler.appendToHistory("System: Click on the drawing area to add polygon points. Type 'endpolygon' when done.\n");
     }
     
-    /****************************************************
-    *    METHOD:    addPolygonPoint    *
-    *    DESCRIPTION:    Adds a point to the current polygon    *
+    /********************************************************************************************
+    *    METHOD:    addPolygonPoint    															*
+    *    DESCRIPTION:    Adds a point to the current polygon    								*
     *    PARAMETERS:    x - the x coordinate of the point, y - the y coordinate of the point    *
-    *    RETURN VALUE:    none    *
-    *****************************************************/
+    *    RETURN VALUE:    none    																*
+    ********************************************************************************************/
     public void addPolygonPoint(int x, int y, InputOutputHandler ioHandler) {
         polygonPoints.add(new Point(x, y));
         ioHandler.appendToHistory("Added point: (" + x + ", " + y + ")\n");
     }
     
-    /****************************************************
-    *    METHOD:    endPolygon    *
-    *    DESCRIPTION:    Finalizes and adds the current polygon to shapes    *
-    *    PARAMETERS:    ioHandler - the input/output handler for displaying messages    *
-    *    RETURN VALUE:    none    *
-    *****************************************************/
+    /********************************************************************************************
+    *    METHOD:    endPolygon    																*
+    *    DESCRIPTION:    Finalizes and adds the current polygon to shapes    					*
+    *    PARAMETERS:    ioHandler - the input/output handler for displaying messages    		*
+    *    RETURN VALUE:    none    																*
+    ********************************************************************************************/
     public void endPolygon(InputOutputHandler ioHandler, boolean recordingLoop) {
         if (polygonPoints.size() >= 3) {
             if (recordingLoop) {
@@ -363,111 +364,111 @@ public class CodeGeneration {
         }
     }
     
-    /****************************************************
-    *    METHOD:    clearPolygon    *
-    *    DESCRIPTION:    Clears the current polygon points    *
+    /************************************************************************************
+    *    METHOD:    clearPolygon    													*
+    *    DESCRIPTION:    Clears the current polygon points    							*
     *    PARAMETERS:    ioHandler - the input/output handler for displaying messages    *
-    *    RETURN VALUE:    none    *
-    *****************************************************/
+    *    RETURN VALUE:    none    														*
+    ************************************************************************************/
     public void clearPolygon(InputOutputHandler ioHandler) {
         polygonPoints.clear();
         ioHandler.appendToHistory("System: Polygon points cleared\n");
     }
     
-    /****************************************************
-    *    METHOD:    getShapes    *
-    *    DESCRIPTION:    Returns the list of all shapes    *
-    *    PARAMETERS:    none    *
-    *    RETURN VALUE:    List<Shape> - the list of shapes    *
-    *****************************************************/
+    /********************************************************
+    *    METHOD:    getShapes    							*
+    *    DESCRIPTION:    Returns the list of all shapes    	*
+    *    PARAMETERS:    none    							*
+    *    RETURN VALUE:    List<Shape> - the list of shapes  *
+    *********************************************************/
     public List<Shape> getShapes() {
         return shapes;
     }
     
-    /****************************************************
-    *    METHOD:    getPolygonPoints    *
-    *    DESCRIPTION:    Returns the list of current polygon points    *
-    *    PARAMETERS:    none    *
-    *    RETURN VALUE:    List<Point> - the list of polygon points    *
-    *****************************************************/
+    /********************************************************************
+    *    METHOD:    getPolygonPoints    								*
+    *    DESCRIPTION:    Returns the list of current polygon points    	*
+    *    PARAMETERS:    none    										*
+    *    RETURN VALUE:    List<Point> - the list of polygon points    	*
+    ********************************************************************/
     public List<Point> getPolygonPoints() {
         return polygonPoints;
     }
     
-    /****************************************************
-    *    METHOD:    getLoopShapes    *
-    *    DESCRIPTION:    Returns the list of shapes in the current loop    *
-    *    PARAMETERS:    none    *
-    *    RETURN VALUE:    List<Shape> - the list of loop shapes    *
-    *****************************************************/
+    /************************************************************************
+    *    METHOD:    getLoopShapes    										*
+    *    DESCRIPTION:    Returns the list of shapes in the current loop    	*
+    *    PARAMETERS:    none    											*
+    *    RETURN VALUE:    List<Shape> - the list of loop shapes    			*
+    ************************************************************************/
     public List<Shape> getLoopShapes() {
         return loopShapes;
     }
     
-    /****************************************************
-    *    METHOD:    setFillShape    *
-    *    DESCRIPTION:    Sets the fill mode for shapes    *
-    *    PARAMETERS:    fillShape - true to fill shapes, false to draw outlines    *
-    *    RETURN VALUE:    none    *
-    *****************************************************/
+    /********************************************************************************
+    *    METHOD:    setFillShape    												*
+    *    DESCRIPTION:    Sets the fill mode for shapes    							*
+    *    PARAMETERS:    fillShape - true to fill shapes, false to draw outlines    	*
+    *    RETURN VALUE:    none    													*
+    ********************************************************************************/
     public void setFillShape(boolean fillShape) {
         this.fillShape = fillShape;
     }
     
-    /****************************************************
-    *    METHOD:    isFillShape    *
-    *    DESCRIPTION:    Returns the current fill mode    *
-    *    PARAMETERS:    none    *
-    *    RETURN VALUE:    boolean - true if shapes are filled, false otherwise    *
-    *****************************************************/
+    /********************************************************************************
+    *    METHOD:    isFillShape    													*
+    *    DESCRIPTION:    Returns the current fill mode    							*
+    *    PARAMETERS:    none    													*
+    *    RETURN VALUE:    boolean - true if shapes are filled, false otherwise    	*
+    ********************************************************************************/
     public boolean isFillShape() {
         return fillShape;
     }
     
-    /****************************************************
-    *    METHOD:    addLoop    *
-    *    DESCRIPTION:    Adds a new loop to the list of loops    *
-    *    PARAMETERS:    name - the name of the loop, commands - the list of commands in the loop    *
-    *    RETURN VALUE:    none    *
-    *****************************************************/
+    /****************************************************************************************************
+    *    METHOD:    addLoop    																			*
+    *    DESCRIPTION:    Adds a new loop to the list of loops    										*
+    *    PARAMETERS:    name - the name of the loop, commands - the list of commands in the loop    	*
+    *    RETURN VALUE:    none    																		*
+    ****************************************************************************************************/
     public void addLoop(String name, List<String> commands) {
         loops.add(new Loop(name, commands));
     }
     
-    /****************************************************
-    *    METHOD:    getLoops    *
-    *    DESCRIPTION:    Returns the list of all loops    *
-    *    PARAMETERS:    none    *
+    /********************************************************
+    *    METHOD:    getLoops    							*
+    *    DESCRIPTION:    Returns the list of all loops    	*
+    *    PARAMETERS:    none    							*
     *    RETURN VALUE:    List<Loop> - the list of loops    *
-    *****************************************************/
+    ********************************************************/
     public List<Loop> getLoops() {
         return loops;
     }
     
-    /****************************************************
-    *    METHOD:    clearLoopShapes    *
-    *    DESCRIPTION:    Clears the list of shapes in the current loop    *
-    *    PARAMETERS:    none    *
-    *    RETURN VALUE:    none    *
-    *****************************************************/
+    /************************************************************************
+    *    METHOD:    clearLoopShapes    										*
+    *    DESCRIPTION:    Clears the list of shapes in the current loop    	*
+    *    PARAMETERS:    none    											*
+    *    RETURN VALUE:    none    											*
+    ************************************************************************/
     public void clearLoopShapes() {
         loopShapes.clear();
     }
     
     /****************************************************
-    *    METHOD:    clearShapes    *
-    *    DESCRIPTION:    Clears all shapes    *
-    *    PARAMETERS:    none    *
-    *    RETURN VALUE:    none    *
-    *****************************************************/
+    *    METHOD:    clearShapes    						*
+    *    DESCRIPTION:    Clears all shapes    			*
+    *    PARAMETERS:    none    						*
+    *    RETURN VALUE:    none    						*
+    ****************************************************/
     public void clearShapes() {
         shapes.clear();
     }
     
-    /****************************************************
-    *    CLASS:    Shape    *
-    *    DESCRIPTION:    Abstract base class for all shapes    *
-    *****************************************************/
+    /************************************************************
+    *    CLASS:    Shape    									*
+    *    DESCRIPTION:    Abstract base class for all shapes    	*
+    ************************************************************/
     abstract class Shape {
         boolean filled;
         
@@ -479,9 +480,9 @@ public class CodeGeneration {
     }
     
     /****************************************************
-    *    CLASS:    Circle    *
-    *    DESCRIPTION:    Represents a circle shape    *
-    *****************************************************/
+    *    CLASS:    Circle    							*
+    *    DESCRIPTION:    Represents a circle shape    	*
+    ****************************************************/
     class Circle extends Shape {
         int x, y, radius;
         
@@ -504,9 +505,9 @@ public class CodeGeneration {
     }
     
     /****************************************************
-    *    CLASS:    Triangle    *
+    *    CLASS:    Triangle   						 	*
     *    DESCRIPTION:    Represents a triangle shape    *
-    *****************************************************/
+    ****************************************************/
     class Triangle extends Shape {
         int x, y, angle;
         
@@ -540,9 +541,9 @@ public class CodeGeneration {
     }
     
     /****************************************************
-    *    CLASS:    Rectangle    *
-    *    DESCRIPTION:    Represents a rectangle shape    *
-    *****************************************************/
+    *    CLASS:    Rectangle    						*
+    *    DESCRIPTION:    Represents a rectangle shape   *
+    ****************************************************/
     class Rectangle extends Shape {
         int x1, y1, x2, y2;
         
@@ -571,9 +572,9 @@ public class CodeGeneration {
     }
     
     /****************************************************
-    *    CLASS:    Square    *
-    *    DESCRIPTION:    Represents a square shape    *
-    *****************************************************/
+    *    CLASS:    Square    							*
+    *    DESCRIPTION:    Represents a square shape    	*
+    ****************************************************/
     class Square extends Shape {
         int x, y, size;
         
@@ -596,9 +597,9 @@ public class CodeGeneration {
     }
     
     /****************************************************
-    *    CLASS:    Polygon    *
-    *    DESCRIPTION:    Represents a polygon shape    *
-    *****************************************************/
+    *    CLASS:    Polygon    							*
+    *    DESCRIPTION:    Represents a polygon shape    	*
+    ****************************************************/
     class Polygon extends Shape {
         List<Point> points;
         
@@ -627,10 +628,10 @@ public class CodeGeneration {
         }
     }
     
-    /****************************************************
-    *    CLASS:    Loop    *
-    *    DESCRIPTION:    Represents a recorded loop of commands    *
-    *****************************************************/
+    /****************************************************************
+    *    CLASS:    Loop    											*
+    *    DESCRIPTION:    Represents a recorded loop of commands    	*
+    ****************************************************************/
     class Loop {
         String name;
         List<String> commands;
@@ -665,52 +666,52 @@ public class CodeGeneration {
     }
         
         /****************************************************
-        *    METHOD:    getName    *
-        *    DESCRIPTION:    Returns the name of the loop    *
-        *    PARAMETERS:    none    *
-        *    RETURN VALUE:    String - the name of the loop    *
-        *****************************************************/
+        *    METHOD:    getName    							*
+        *    DESCRIPTION:    Returns the name of the loop   *
+        *    PARAMETERS:    none    						*
+        *    RETURN VALUE:    String - the name of the loop *
+        ****************************************************/
         public String getName() {
             return getName();
         }
         
-        /****************************************************
-        *    METHOD:    getCommands    *
-        *    DESCRIPTION:    Returns the commands in the loop    *
-        *    PARAMETERS:    none    *
-        *    RETURN VALUE:    List<String> - the list of commands    *
-        *****************************************************/
+        /************************************************************
+        *    METHOD:    getCommands    								*
+        *    DESCRIPTION:    Returns the commands in the loop    	*
+        *    PARAMETERS:    none    								*
+        *    RETURN VALUE:    List<String> - the list of commands   *
+        ************************************************************/
         public List<String> getCommands() {
             return getCommands();
         }
-        /****************************************************
-        *    METHOD:    startLoopRecording    *
-        *    DESCRIPTION:    Initiates loop recording mode    *
+        /************************************************************************************
+        *    METHOD:    startLoopRecording    												*
+        *    DESCRIPTION:    Initiates loop recording mode    								*
         *    PARAMETERS:    ioHandler - the input/output handler for displaying messages    *
-        *    RETURN VALUE:    none    *
-        *****************************************************/
+        *    RETURN VALUE:    none    														*
+        ************************************************************************************/
         public void startLoopRecording(InputOutputHandler ioHandler) {
             loopShapes.clear();
             isRecordingLoop = true;
             ioHandler.appendToHistory("System: Loop recording started. All shapes will be added to the loop.\n");
         }
 
-        /****************************************************
-        *    METHOD:    isRecordingLoop    *
-        *    DESCRIPTION:    Checks if loop recording is active    *
-        *    PARAMETERS:    none    *
-        *    RETURN VALUE:    boolean - true if recording loop, false otherwise    *
-        *****************************************************/
+        /****************************************************************************
+        *    METHOD:    isRecordingLoop    											*
+        *    DESCRIPTION:    Checks if loop recording is active    					*
+        *    PARAMETERS:    none    												*
+        *    RETURN VALUE:    boolean - true if recording loop, false otherwise    	*
+        ****************************************************************************/
         public boolean isRecordingLoop() {
             return isRecordingLoop;
         }
 
-        /****************************************************
-        *    METHOD:    endLoopRecording    *
-        *    DESCRIPTION:    Saves the current loop with the given name    *
+        /****************************************************************************************
+        *    METHOD:    endLoopRecording   														*
+        *    DESCRIPTION:    Saves the current loop with the given name    						*
         *    PARAMETERS:    name - the name of the loop, ioHandler - for displaying messages    *
-        *    RETURN VALUE:    none    *
-        *****************************************************/
+        *    RETURN VALUE:    none    															*
+        ****************************************************************************************/
         public void endLoopRecording(String name, InputOutputHandler ioHandler) {
             if (isRecordingLoop && !loopShapes.isEmpty()) {
                 // Convert the loop shapes to commands for storage
@@ -752,12 +753,12 @@ public class CodeGeneration {
                 ioHandler.appendToHistory("System: No loop recording in progress or no shapes recorded\n");
             }
         }
-        /****************************************************
-         *    METHOD:    endLoopRecording    *
-         *    DESCRIPTION:    Saves the current loop with the given name    *
-         *    PARAMETERS:    name - the name of the loop, ioHandler - for displaying messages    *
-         *    RETURN VALUE:    none    *
-         *****************************************************/
+        /****************************************************************************************
+         *    METHOD:    endLoopRecording    													*
+         *    DESCRIPTION:    Saves the current loop with the given name    					*
+         *    PARAMETERS:    name - the name of the loop, ioHandler - for displaying messages   *
+         *    RETURN VALUE:    none    															*
+         ***************************************************************************************/
         public void playLoop(String name, DrawingPanel panel, InputOutputHandler ioHandler) {
             // Play back the loop with the given name
             Loop targetLoop = null;
