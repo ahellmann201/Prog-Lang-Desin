@@ -37,6 +37,9 @@ public class UserInterface extends JFrame {
     private JToggleButton fillButton;
     private JButton startLoopButton, endLoopButton, playLoopButton;
     private JButton showVarsButton, clearVarsButton;
+    
+    private List<String> commandHistory = new ArrayList<>();
+    private int historyIndex = -1;
 
     /**************************************************************************
     *    METHOD:    UserInterface Constructor                                 *
@@ -182,7 +185,108 @@ public class UserInterface extends JFrame {
             ioHandler.appendToHistory("System: All variables cleared\n");
         });
         
+        
+        
         // Mouse listener for polygon drawing
+        drawingPanel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (ioHandler.isDrawingPolygon()) {
+                    ioHandler.addPolygonPoint(new Point(e.getX(), e.getY()));
+                    drawingPanel.repaint();
+                    ioHandler.appendToHistory("Added point: (" + e.getX() + ", " + e.getY() + ")\n");
+                }
+            }
+        });
+        
+        // Add keyboard history navigation (UP and DOWN arrows)
+        inputField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_UP) {
+                    if (!commandHistory.isEmpty()) {
+                        if (historyIndex > 0) {
+                            historyIndex--;
+                        }
+                        inputField.setText(commandHistory.get(historyIndex));
+                        // Move cursor to end of text for easy editing
+                        inputField.setCaretPosition(inputField.getText().length());
+                    }
+                    e.consume(); // Prevent default behavior
+                } 
+                else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+                    if (!commandHistory.isEmpty()) {
+                        if (historyIndex < commandHistory.size() - 1) {
+                            historyIndex++;
+                            inputField.setText(commandHistory.get(historyIndex));
+                            // Move cursor to end of text for easy editing
+                            inputField.setCaretPosition(inputField.getText().length());
+                        } else {
+                            historyIndex = commandHistory.size();
+                            inputField.setText("");
+                        }
+                    }
+                    e.consume(); // Prevent default behavior
+                }
+            }
+        });
+    
+        
+        // Mouse listener for polygon drawing
+        drawingPanel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (ioHandler.isDrawingPolygon()) {
+                    ioHandler.addPolygonPoint(new Point(e.getX(), e.getY()));
+                    drawingPanel.repaint();
+                    ioHandler.appendToHistory("Added point: (" + e.getX() + ", " + e.getY() + ")\n");
+                }
+            }
+        });
+        
+        // Add keyboard history navigation (UP and DOWN arrows)
+        inputField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_UP) {
+                    if (!commandHistory.isEmpty()) {
+                        if (historyIndex > 0) {
+                            historyIndex--;
+                        }
+                        inputField.setText(commandHistory.get(historyIndex));
+                        // Move cursor to end of text for easy editing
+                        inputField.setCaretPosition(inputField.getText().length());
+                    }
+                    e.consume(); // Prevent default behavior
+                } 
+                else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+                    if (!commandHistory.isEmpty()) {
+                        if (historyIndex < commandHistory.size() - 1) {
+                            historyIndex++;
+                            inputField.setText(commandHistory.get(historyIndex));
+                            // Move cursor to end of text for easy editing
+                            inputField.setCaretPosition(inputField.getText().length());
+                        } else {
+                            historyIndex = commandHistory.size();
+                            inputField.setText("");
+                        }
+                    }
+                    e.consume(); // Prevent default behavior
+                }
+            }
+        });
+        
+        
+        
+        /**************************************************************************
+        *    METHOD:    MouseListener for Polygon Drawing                         *
+        *    DESCRIPTION:  Handles mouse click events to add points when in       *
+        *                  polygon drawing mode. Adds clicked coordinates to      *
+        *                  the polygon points list, repaints the panel, and       *
+        *                  logs the action to history.                            *
+        *    PARAMETERS:  None                                                    *
+        *    RETURN VALUE:  None                                                  *
+        **************************************************************************/
         drawingPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -204,8 +308,18 @@ public class UserInterface extends JFrame {
     private void processInput() {
         String text = inputField.getText().trim();
         if (!text.isEmpty()) {
+            // Add to command history
+            commandHistory.add(text);
+            historyIndex = commandHistory.size(); // Reset to end of history
+            
             ioHandler.appendToHistory("You: " + text + "\n");
             inputField.setText("");
+            
+            // Check if this is a for loop
+            if (text.toLowerCase().startsWith("for(")) {
+                processForLoop(text);
+                return;
+            }
             
             // Process the command
             if (text.equalsIgnoreCase("polygon")) {
@@ -294,6 +408,310 @@ public class UserInterface extends JFrame {
     }
     
     /**************************************************************************
+    *    METHOD:    processForLoop                                           *
+    *    DESCRIPTION:  Processes a for loop command                          *
+    *    PARAMETERS:  String command - the for loop command to process       *
+    *    RETURN VALUE:  None                                                 *
+    **************************************************************************/
+    private void processForLoop(String command) {
+        try {
+            // Parse for loop syntax: for(var=start;condition;increment): command
+            String pattern = "for\\s*\\(\\s*([^=]+)=([^;]+);([^;]+);([^)]+)\\)\\s*:\\s*(.+)";
+            java.util.regex.Pattern regex = java.util.regex.Pattern.compile(pattern, java.util.regex.Pattern.CASE_INSENSITIVE);
+            java.util.regex.Matcher matcher = regex.matcher(command);
+            
+            if (matcher.find()) {
+                String varName = matcher.group(1).trim();
+                String startExpr = matcher.group(2).trim();
+                String condition = matcher.group(3).trim();
+                String increment = matcher.group(4).trim();
+                String loopCommand = matcher.group(5).trim();
+                
+                // Parse start value (handle expressions like 50+x)
+                String expandedStart = expandVariables(startExpr);
+                int startValue = evaluateSimpleMath(expandedStart);
+                
+                // Set initial variable value
+                ioHandler.setVariable(varName, startValue);
+                
+                // Execute the loop
+                int iterationCount = 0;
+                int maxIterations = 1000; // Safety limit to prevent infinite loops
+                
+                ioHandler.appendToHistory("System: Starting for loop with " + varName + "=" + startValue + "\n");
+                
+                while (iterationCount < maxIterations) {
+                    // Check condition
+                    if (!evaluateCondition(varName, condition)) {
+                        ioHandler.appendToHistory("System: Loop condition failed, breaking\n");
+                        break;
+                    }
+                    
+                    // Execute the command with current variable value
+                    String expandedCommand = expandVariables(loopCommand);
+                    ioHandler.appendToHistory("System: Iteration " + (iterationCount + 1) + ": " + varName + "=" + 
+                                             ioHandler.getVariable(varName) + ", executing: " + expandedCommand + "\n");
+                    
+                    if (codeGeneration.isRecordingLoop()) {
+                        processCommandForLoop(expandedCommand);
+                    } else {
+                        processCommand(expandedCommand);
+                    }
+                    
+                    // Apply increment
+                    applyIncrement(varName, increment);
+                    
+                    iterationCount++;
+                }
+                
+                if (iterationCount >= maxIterations) {
+                    ioHandler.appendToHistory("System: Loop terminated after " + maxIterations + " iterations (safety limit)\n");
+                } else {
+                    ioHandler.appendToHistory("System: Loop completed with " + iterationCount + " iterations\n");
+                }
+                
+                drawingPanel.repaint();
+            } else {
+                ioHandler.appendToHistory("System: Invalid for loop syntax. Use: for(var=start;condition;increment): command\n");
+                ioHandler.appendToHistory("Example: for(x=0;x<=200;x+=5): circle,50+x,250,250\n");
+            }
+        } catch (Exception e) {
+            ioHandler.appendToHistory("System: Error processing for loop: " + e.getMessage() + "\n");
+            e.printStackTrace();
+        }
+    }
+    
+    /**************************************************************************
+    *    METHOD:    evaluateCondition                                        *
+    *    DESCRIPTION:  Evaluates a loop condition                            *
+    *    PARAMETERS:  String varName - the loop variable name                *
+    *                 String condition - the condition to evaluate           *
+    *    RETURN VALUE:  boolean - true if condition is met, false otherwise  *
+    **************************************************************************/
+    private boolean evaluateCondition(String varName, String condition) {
+        try {
+            // Get current variable value
+            Integer currentValue = ioHandler.getVariable(varName);
+            if (currentValue == null) {
+                return false;
+            }
+            
+            // Parse condition (supports: var < value, var <= value, var > value, var >= value, var == value)
+            if (condition.contains("<=")) {
+                String[] parts = condition.split("<=");
+                if (parts.length == 2 && parts[0].trim().equals(varName)) {
+                    int compareValue = ioHandler.parseValue(parts[1].trim());
+                    return currentValue <= compareValue;
+                }
+            } else if (condition.contains(">=")) {
+                String[] parts = condition.split(">=");
+                if (parts.length == 2 && parts[0].trim().equals(varName)) {
+                    int compareValue = ioHandler.parseValue(parts[1].trim());
+                    return currentValue >= compareValue;
+                }
+            } else if (condition.contains("<")) {
+                String[] parts = condition.split("<");
+                if (parts.length == 2 && parts[0].trim().equals(varName)) {
+                    int compareValue = ioHandler.parseValue(parts[1].trim());
+                    return currentValue < compareValue;
+                }
+            } else if (condition.contains(">")) {
+                String[] parts = condition.split(">");
+                if (parts.length == 2 && parts[0].trim().equals(varName)) {
+                    int compareValue = ioHandler.parseValue(parts[1].trim());
+                    return currentValue > compareValue;
+                }
+            } else if (condition.contains("==")) {
+                String[] parts = condition.split("==");
+                if (parts.length == 2 && parts[0].trim().equals(varName)) {
+                    int compareValue = ioHandler.parseValue(parts[1].trim());
+                    return currentValue == compareValue;
+                }
+            } else if (condition.contains("!=")) {
+                String[] parts = condition.split("!=");
+                if (parts.length == 2 && parts[0].trim().equals(varName)) {
+                    int compareValue = ioHandler.parseValue(parts[1].trim());
+                    return currentValue != compareValue;
+                }
+            }
+            
+            return false;
+        } catch (Exception e) {
+            ioHandler.appendToHistory("System: Error evaluating condition: " + e.getMessage() + "\n");
+            return false;
+        }
+    }
+
+    /**************************************************************************
+    *    METHOD:    applyIncrement                                           *
+    *    DESCRIPTION:  Applies an increment to a variable                    *
+    *    PARAMETERS:  String varName - the variable name                     *
+    *                 String increment - the increment expression            *
+    *    RETURN VALUE:  None                                                 *
+    **************************************************************************/
+    private void applyIncrement(String varName, String increment) {
+        try {
+            Integer currentValue = ioHandler.getVariable(varName);
+            if (currentValue == null) {
+                ioHandler.appendToHistory("System: Variable " + varName + " not found\n");
+                return;
+            }
+            
+            // Parse increment (supports: var++, var--, var+=value, var-=value, var=value)
+            if (increment.equals(varName + "++")) {
+                ioHandler.setVariable(varName, currentValue + 1);
+            } else if (increment.equals(varName + "--")) {
+                ioHandler.setVariable(varName, currentValue - 1);
+            } else if (increment.contains("+=")) {
+                String[] parts = increment.split("\\+=");
+                if (parts.length == 2 && parts[0].trim().equals(varName)) {
+                    int incrementValue = ioHandler.parseValue(parts[1].trim());
+                    ioHandler.setVariable(varName, currentValue + incrementValue);
+                }
+            } else if (increment.contains("-=")) {
+                String[] parts = increment.split("-=");
+                if (parts.length == 2 && parts[0].trim().equals(varName)) {
+                    int decrementValue = ioHandler.parseValue(parts[1].trim());
+                    ioHandler.setVariable(varName, currentValue - decrementValue);
+                }
+            } else if (increment.contains("=")) {
+                String[] parts = increment.split("=");
+                if (parts.length == 2 && parts[0].trim().equals(varName)) {
+                    int newValue = ioHandler.parseValue(parts[1].trim());
+                    ioHandler.setVariable(varName, newValue);
+                }
+            } else {
+                ioHandler.appendToHistory("System: Invalid increment expression: " + increment + "\n");
+            }
+            
+            // Debug output to see the increment working
+            ioHandler.appendToHistory("System: Incremented " + varName + " to " + ioHandler.getVariable(varName) + "\n");
+            
+        } catch (Exception e) {
+            ioHandler.appendToHistory("System: Error applying increment: " + e.getMessage() + "\n");
+            e.printStackTrace();
+        }
+    }
+
+    /**************************************************************************
+    *    METHOD:    expandVariables                                          *
+    *    DESCRIPTION:  Expands variables and evaluates mathematical expressions*
+    *    PARAMETERS:  String command - the command with variables            *
+    *    RETURN VALUE:  String - the command with variables expanded         *
+    **************************************************************************/
+    private String expandVariables(String command) {
+        // First, replace all variables with their values
+        String result = command;
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\b([a-zA-Z_][a-zA-Z0-9_]*)\\b");
+        java.util.regex.Matcher matcher = pattern.matcher(command);
+        
+        while (matcher.find()) {
+            String varName = matcher.group(1);
+            Integer value = ioHandler.getVariable(varName);
+            if (value != null && !isReservedWord(varName)) {
+                result = result.replace(varName, value.toString());
+            }
+        }
+        
+        // Now evaluate mathematical expressions in parentheses
+        result = evaluateMathExpressions(result);
+        
+        return result;
+    }
+
+    /**************************************************************************
+    *    METHOD:    evaluateMathExpressions                                  *
+    *    DESCRIPTION:  Evaluates mathematical expressions in parentheses     *
+    *    PARAMETERS:  String input - the string with math expressions        *
+    *    RETURN VALUE:  String - the string with math evaluated              *
+    **************************************************************************/
+    private String evaluateMathExpressions(String input) {
+        // Pattern to find expressions like (50+x) or (100+i*20)
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\(([^()]+)\\)");
+        java.util.regex.Matcher matcher = pattern.matcher(input);
+        StringBuffer result = new StringBuffer();
+        
+        while (matcher.find()) {
+            String expression = matcher.group(1);
+            try {
+                int value = evaluateSimpleMath(expression);
+                matcher.appendReplacement(result, String.valueOf(value));
+            } catch (Exception e) {
+                // If we can't evaluate it, leave it as is
+                matcher.appendReplacement(result, "(" + expression + ")");
+            }
+        }
+        matcher.appendTail(result);
+        
+        return result.toString();
+    }
+
+    /**************************************************************************
+    *    METHOD:    evaluateSimpleMath                                       *
+    *    DESCRIPTION:  Evaluates simple mathematical expressions             *
+    *    PARAMETERS:  String expression - the math expression to evaluate    *
+    *    RETURN VALUE:  int - the result of the evaluation                   *
+    **************************************************************************/
+    private int evaluateSimpleMath(String expression) {
+        try {
+            // Remove spaces
+            String expr = expression.replaceAll("\\s+", "");
+            
+            // Handle multiplication first (higher precedence)
+            if (expr.contains("*")) {
+                String[] parts = expr.split("\\*");
+                if (parts.length == 2) {
+                    int left = evaluateSimpleMath(parts[0]);
+                    int right = evaluateSimpleMath(parts[1]);
+                    return left * right;
+                }
+            }
+            
+            // Handle addition and subtraction
+            if (expr.contains("+") && !expr.startsWith("+")) {
+                String[] parts = expr.split("\\+");
+                if (parts.length == 2) {
+                    int left = evaluateSimpleMath(parts[0]);
+                    int right = evaluateSimpleMath(parts[1]);
+                    return left + right;
+                }
+            }
+            
+            if (expr.contains("-") && !expr.startsWith("-")) {
+                String[] parts = expr.split("-");
+                if (parts.length == 2) {
+                    int left = evaluateSimpleMath(parts[0]);
+                    int right = evaluateSimpleMath(parts[1]);
+                    return left - right;
+                }
+            }
+            
+            // If no operators, just parse the number
+            return Integer.parseInt(expr);
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid mathematical expression: " + expression);
+        }
+    }
+
+    /**************************************************************************
+    *    METHOD:    isReservedWord                                           *
+    *    DESCRIPTION:  Checks if a word is a reserved keyword                *
+    *    PARAMETERS:  String word - the word to check                        *
+    *    RETURN VALUE:  boolean - true if reserved, false otherwise          *
+    **************************************************************************/
+    private boolean isReservedWord(String word) {
+        String[] reservedWords = {"circle", "triangle", "rectangle", "square", "polygon", 
+                                 "endpolygon", "clearpolygon", "points", "fill", "set", 
+                                 "move", "home", "for", "loop"};
+        for (String reserved : reservedWords) {
+            if (reserved.equalsIgnoreCase(word)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**************************************************************************
     *    METHOD:    processCommand                                            *
     *    DESCRIPTION:  Processes a drawing command                            *
     *    PARAMETERS:  String command - the command to process                 *
@@ -372,9 +790,8 @@ public class UserInterface extends JFrame {
         ioHandler.appendToHistory("clearpolygon - Clear current polygon points\n");
         ioHandler.appendToHistory("points, x1,y1 x2,y2 x3,y3 ... - Draw polygon with specified points\n");
         ioHandler.appendToHistory("fill on / fill off - Toggle fill mode for shapes\n");
-        ioHandler.appendToHistory("loop start - Start recording a loop\n");
-        ioHandler.appendToHistory("loop end - End recording and save the loop\n");
-        ioHandler.appendToHistory("loop play [name] - Play a saved loop\n");
+        ioHandler.appendToHistory("for(var=start;condition;increment): command - Execute a for loop\n");
+        ioHandler.appendToHistory("  Example: for(x=0;x<=200;x+=5): circle,50+x,250,250\n");
         ioHandler.appendToHistory("set var=value - Set a variable (e.g., set size=50)\n");
         ioHandler.appendToHistory("move x,y - Move current position\n");
         ioHandler.appendToHistory("home - Return to default position (400, 300)\n");
@@ -410,6 +827,9 @@ public class UserInterface extends JFrame {
 class DrawingPanel extends JPanel {
     private InputOutputHandler ioHandler;
     private CodeGeneration codeGeneration;
+    private Point mousePosition = new Point(-1, -1);
+    private Point fixedCrosshairPosition = null;
+    private boolean showCrosshair = false;
     
     /**************************************************************************
     *    METHOD:    setIOHandler                                              *
@@ -429,6 +849,64 @@ class DrawingPanel extends JPanel {
     **************************************************************************/
     public void setCodeGeneration(CodeGeneration codeGeneration) {
         this.codeGeneration = codeGeneration;
+        
+        // Add mouse motion listener to track mouse position
+        addMouseMotionListener(new MouseMotionAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                mousePosition = e.getPoint();
+                if (fixedCrosshairPosition == null) {
+                    showCrosshair = true;
+                }
+                repaint();
+            }
+            
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                mousePosition = e.getPoint();
+                if (fixedCrosshairPosition == null) {
+                    showCrosshair = true;
+                }
+                repaint();
+            }
+        });
+        
+        // Add mouse listener to hide crosshair when mouse leaves
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (fixedCrosshairPosition == null) {
+                    showCrosshair = false;
+                }
+                repaint();
+            }
+            
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                mousePosition = e.getPoint();
+                if (fixedCrosshairPosition == null) {
+                    showCrosshair = true;
+                }
+                repaint();
+            }
+            
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                // Set or clear fixed crosshair position on click
+                if (fixedCrosshairPosition == null) {
+                    // Set fixed crosshair at clicked position
+                    fixedCrosshairPosition = e.getPoint();
+                    showCrosshair = true;
+                    ioHandler.appendToHistory("Crosshair fixed at: (" + fixedCrosshairPosition.x + ", " + fixedCrosshairPosition.y + ")\n");
+                } else {
+                    // Clear fixed crosshair
+                    fixedCrosshairPosition = null;
+                    showCrosshair = true;
+                    ioHandler.appendToHistory("Crosshair released\n");
+                }
+                repaint();
+            }
+        });
     }
     
     /**************************************************************************
@@ -470,6 +948,37 @@ class DrawingPanel extends JPanel {
                         Point prev = polygonPoints.get(i - 1);
                         g.drawLine(prev.x, prev.y, p.x, p.y);
                     }
+                }
+            }
+            
+            // Draw crosshair and coordinates
+            if (showCrosshair) {
+                Point crosshairPoint = (fixedCrosshairPosition != null) ? fixedCrosshairPosition : mousePosition;
+                
+                g.setColor(Color.GRAY);
+                
+                // Draw horizontal line
+                g.drawLine(0, crosshairPoint.y, getWidth(), crosshairPoint.y);
+                
+                // Draw vertical line
+                g.drawLine(crosshairPoint.x, 0, crosshairPoint.x, getHeight());
+                
+                // Draw coordinates text
+                String coordText = "(" + crosshairPoint.x + ", " + crosshairPoint.y + ")";
+                g.setColor(Color.BLACK);
+                g.fillRect(crosshairPoint.x + 10, crosshairPoint.y - 15, 
+                          g.getFontMetrics().stringWidth(coordText) + 6, 20);
+                g.setColor(Color.WHITE);
+                g.drawString(coordText, crosshairPoint.x + 13, crosshairPoint.y);
+                
+                // Draw a small indicator at the crosshair intersection
+                g.setColor(Color.RED);
+                g.fillRect(crosshairPoint.x - 2, crosshairPoint.y - 2, 5, 5);
+                
+                // If crosshair is fixed, draw a different indicator
+                if (fixedCrosshairPosition != null) {
+                    g.setColor(Color.BLUE);
+                    g.drawRect(crosshairPoint.x - 4, crosshairPoint.y - 4, 9, 9);
                 }
             }
         }
