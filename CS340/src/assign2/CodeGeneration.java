@@ -798,7 +798,18 @@ public class CodeGeneration {
             }
         }
         
-        
+        /************************************************************************************
+        *    METHOD:    clearScreen    														*
+        *    DESCRIPTION:    Clears all shapes from the drawing screen    					*
+        *    PARAMETERS:    ioHandler - the input/output handler for displaying messages    *
+        *    RETURN VALUE:    none    														*
+        ************************************************************************************/
+        public void clearScreen(InputOutputHandler ioHandler) {
+            shapes.clear();
+            polygonPoints.clear();
+            loopShapes.clear();
+            ioHandler.appendToHistory("System: Screen cleared - all shapes removed\n");
+        }
         
         
     }
