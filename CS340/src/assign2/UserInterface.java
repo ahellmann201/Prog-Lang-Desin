@@ -37,6 +37,7 @@ public class UserInterface extends JFrame {
     private JToggleButton fillButton;
     private JButton startLoopButton, endLoopButton, playLoopButton;
     private JButton showVarsButton, clearVarsButton;
+    private JButton clearScreenButton;
     
     private List<String> commandHistory = new ArrayList<>();
     private int historyIndex = -1;
@@ -95,6 +96,7 @@ public class UserInterface extends JFrame {
         playLoopButton = new JButton("Play Loop");
         showVarsButton = new JButton("Show Variables");
         clearVarsButton = new JButton("Clear Variables");
+        clearScreenButton = new JButton("Clear Screen");
     }
     
     /**************************************************************************
@@ -120,6 +122,7 @@ public class UserInterface extends JFrame {
         buttonPanel.add(playLoopButton);
         buttonPanel.add(showVarsButton);
         buttonPanel.add(clearVarsButton);
+        buttonPanel.add(clearScreenButton);  
         inputPanel.add(buttonPanel, BorderLayout.EAST);
         
         add(inputPanel, BorderLayout.SOUTH);
@@ -185,7 +188,12 @@ public class UserInterface extends JFrame {
             ioHandler.appendToHistory("System: All variables cleared\n");
         });
         
-        
+     // Clear screen button
+        clearScreenButton.addActionListener(e -> {
+            codeGeneration.clearScreen(ioHandler);
+            drawingPanel.repaint();
+            ioHandler.appendToHistory("System: Screen cleared\n");
+        });
         
         // Mouse listener for polygon drawing
         drawingPanel.addMouseListener(new MouseAdapter() {
@@ -374,28 +382,6 @@ public class UserInterface extends JFrame {
                     ioHandler.appendToHistory("System: Invalid set command. Use: set var=value\n");
                 }
             }
-            else if (text.startsWith("move ")) {
-                String[] parts = text.substring(5).split(",");
-                if (parts.length == 2) {
-                    try {
-                        int dx = ioHandler.parseValue(parts[0].trim());
-                        int dy = ioHandler.parseValue(parts[1].trim());
-                        Point current = ioHandler.getCurrentPosition();
-                        ioHandler.setCurrentPosition(new Point(current.x + dx, current.y + dy));
-                        ioHandler.appendToHistory("System: Moved to (" + (current.x + dx) + ", " + (current.y + dy) + ")\n");
-                        drawingPanel.repaint();
-                    } catch (NumberFormatException e) {
-                        ioHandler.appendToHistory("System: Invalid move command. Use: move dx,dy\n");
-                    }
-                } else {
-                    ioHandler.appendToHistory("System: Invalid move command. Use: move dx,dy\n");
-                }
-            }
-            else if (text.equalsIgnoreCase("home")) {
-                ioHandler.setCurrentPosition(new Point(400, 300));
-                ioHandler.appendToHistory("System: Returned to home position (400, 300)\n");
-                drawingPanel.repaint();
-            }
             else {
                 // Process shape commands
                 if (codeGeneration.isRecordingLoop()) {
@@ -403,9 +389,13 @@ public class UserInterface extends JFrame {
                 } else {
                     processCommand(text);
                 }
+            }}
+            else if (text.equalsIgnoreCase("clear")) {
+                codeGeneration.clearScreen(ioHandler);
+                drawingPanel.repaint();
+                ioHandler.appendToHistory("System: Screen cleared\n");
             }
         }
-    }
     
     /**************************************************************************
     *    METHOD:    processForLoop                                           *
@@ -784,19 +774,21 @@ public class UserInterface extends JFrame {
         ioHandler.appendToHistory("circle, radius, x, y\n");
         ioHandler.appendToHistory("triangle, x, y, angle\n");
         ioHandler.appendToHistory("rectangle, x1, y1, x2, y2\n");
-        ioHandler.appendToHistory("square, x, y, size\n");
+        ioHandler.appendToHistory("square, x, y, size\n\n");
+        
         ioHandler.appendToHistory("polygon - Start adding points by clicking on the drawing area\n");
         ioHandler.appendToHistory("endpolygon - Finish drawing the polygon\n");
         ioHandler.appendToHistory("clearpolygon - Clear current polygon points\n");
-        ioHandler.appendToHistory("points, x1,y1 x2,y2 x3,y3 ... - Draw polygon with specified points\n");
-        ioHandler.appendToHistory("fill on / fill off - Toggle fill mode for shapes\n");
+        ioHandler.appendToHistory("points, x1,y1 x2,y2 x3,y3 ... - Draw polygon with specified points\n\n");
+        
         ioHandler.appendToHistory("for(var=start;condition;increment): command - Execute a for loop\n");
-        ioHandler.appendToHistory("  Example: for(x=0;x<=200;x+=5): circle,50+x,250,250\n");
+        ioHandler.appendToHistory("  Example: for(x=0;x<=200;x+=5): circle,50+x,250,250\n\n");
         ioHandler.appendToHistory("set var=value - Set a variable (e.g., set size=50)\n");
-        ioHandler.appendToHistory("move x,y - Move current position\n");
-        ioHandler.appendToHistory("home - Return to default position (400, 300)\n");
         ioHandler.appendToHistory("show vars - Show all variables\n");
         ioHandler.appendToHistory("clear vars - Clear all variables\n\n");
+        
+        ioHandler.appendToHistory("fill on / fill off - Toggle fill mode for shapes\n");
+        ioHandler.appendToHistory("clear - Clear all shapes from the screen\n");
     }
     
     /**************************************************************************
@@ -930,12 +922,6 @@ class DrawingPanel extends JPanel {
             for (CodeGeneration.Shape shape : codeGeneration.getLoopShapes()) {
                 shape.draw(g);
             }
-            
-            // Draw current position indicator
-            g.setColor(Color.BLACK);
-            Point currentPos = ioHandler.getCurrentPosition();
-            g.fillOval(currentPos.x - 3, currentPos.y - 3, 6, 6);
-            g.drawString("Current", currentPos.x + 5, currentPos.y - 5);
             
             // Draw current polygon points if in drawing mode
             if (ioHandler.isDrawingPolygon()) {
