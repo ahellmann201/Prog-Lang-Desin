@@ -29,7 +29,6 @@ public class InputOutputHandler {
     private java.util.List<Point> polygonPoints = new ArrayList<>();
     private boolean drawingPolygon = false;
     private boolean fillShape = false;
-    private Point currentPosition = new Point(400, 300); // Default starting position
     private Map<String, Integer> variables = new HashMap<>(); // Variable storage
     
     private JTextArea historyArea;
@@ -96,25 +95,7 @@ public class InputOutputHandler {
         this.fillShape = fillShape;
     }
     
-    /**************************************************************************
-    *    METHOD:    getCurrentPosition                                        *
-    *    DESCRIPTION:  Returns the current drawing position                   *
-    *    PARAMETERS:  None                                                    *
-    *    RETURN VALUE:  Point - the current position coordinates              *
-    **************************************************************************/
-    public Point getCurrentPosition() {
-        return currentPosition;
-    }
     
-    /**************************************************************************
-    *    METHOD:    setCurrentPosition                                        *
-    *    DESCRIPTION:  Sets the current drawing position                      *
-    *    PARAMETERS:  Point position - the new position coordinates           *
-    *    RETURN VALUE:  None                                                  *
-    **************************************************************************/
-    public void setCurrentPosition(Point position) {
-        this.currentPosition = position;
-    }
     
     /**************************************************************************
     *    METHOD:    getPolygonPoints                                          *
