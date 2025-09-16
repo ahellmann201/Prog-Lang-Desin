@@ -1,4 +1,4 @@
-package assign2;
+package assign3;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -28,7 +28,7 @@ import java.util.List;
     *																		*
     ************************************************************************/
 
-public class CodeGeneration {
+public class CodeGeneration3 {
     private List<Shape> shapes = new ArrayList<>();
     private List<Point> polygonPoints = new ArrayList<>();
     private boolean fillShape = false;
@@ -42,7 +42,7 @@ public class CodeGeneration {
     *    PARAMETERS:    command - the command string containing circle parameters    	*
     *    RETURN VALUE:    none    														*
     ************************************************************************************/
-    public void processCircleCommand(String command, InputOutputHandler ioHandler) {
+    public void processCircleCommand(String command, InputOutputHandler3 ioHandler) {
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("circle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
         
@@ -75,7 +75,7 @@ public class CodeGeneration {
     *    PARAMETERS:    command - the command string containing circle parameters    	*
     *    RETURN VALUE:    none    														*
     *************************************************************************************/
-    public void processCircleCommandForLoop(String command, InputOutputHandler ioHandler) {
+    public void processCircleCommandForLoop(String command, InputOutputHandler3 ioHandler) {
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("circle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
         
@@ -102,7 +102,7 @@ public class CodeGeneration {
     *    PARAMETERS:    command - the command string containing triangle parameters    	*
     *    RETURN VALUE:    none    														*
     ************************************************************************************/
-    public void processTriangleCommand(String command, InputOutputHandler ioHandler) {
+    public void processTriangleCommand(String command, InputOutputHandler3 ioHandler) {
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("triangle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
         
@@ -129,7 +129,7 @@ public class CodeGeneration {
     *    PARAMETERS:    command - the command string containing triangle parameters    	*
     *    RETURN VALUE:    none    														*
     ************************************************************************************/
-    public void processTriangleCommandForLoop(String command, InputOutputHandler ioHandler) {
+    public void processTriangleCommandForLoop(String command, InputOutputHandler3 ioHandler) {
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("triangle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
         
@@ -156,7 +156,7 @@ public class CodeGeneration {
     *    PARAMETERS:    command - the command string containing rectangle parameters    *
     *    RETURN VALUE:    none    														*
     ************************************************************************************/
-    public void processRectangleCommand(String command, InputOutputHandler ioHandler) {
+    public void processRectangleCommand(String command, InputOutputHandler3 ioHandler) {
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("rectangle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
         
@@ -184,7 +184,7 @@ public class CodeGeneration {
     *    PARAMETERS:    command - the command string containing rectangle parameters    *
     *    RETURN VALUE:    none    														*
     ************************************************************************************/
-    public void processRectangleCommandForLoop(String command, InputOutputHandler ioHandler) {
+    public void processRectangleCommandForLoop(String command, InputOutputHandler3 ioHandler) {
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("rectangle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
         
@@ -212,7 +212,7 @@ public class CodeGeneration {
     *    PARAMETERS:    command - the command string containing square parameters    	*
     *    RETURN VALUE:    none    														*
     ************************************************************************************/
-    public void processSquareCommand(String command, InputOutputHandler ioHandler) {
+    public void processSquareCommand(String command, InputOutputHandler3 ioHandler) {
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("square\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
         
@@ -239,7 +239,7 @@ public class CodeGeneration {
     *    PARAMETERS:    command - the command string containing square parameters    	*
     *    RETURN VALUE:    none    														*
     ************************************************************************************/
-    public void processSquareCommandForLoop(String command, InputOutputHandler ioHandler) {
+    public void processSquareCommandForLoop(String command, InputOutputHandler3 ioHandler) {
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("square\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
         
@@ -266,7 +266,7 @@ public class CodeGeneration {
     *    PARAMETERS:    command - the command string containing polygon points    		*
     *    RETURN VALUE:    none    														*
     ************************************************************************************/
-    public void processPointsCommand(String command, InputOutputHandler ioHandler) {
+    public void processPointsCommand(String command, InputOutputHandler3 ioHandler) {
         try {
             String[] parts = command.split(",\\s*");
             List<Point> points = new ArrayList<>();
@@ -297,7 +297,7 @@ public class CodeGeneration {
     *    PARAMETERS:    command - the command string containing polygon points    				*
     *    RETURN VALUE:    none    																*
     ********************************************************************************************/
-    public void processPointsCommandForLoop(String command, InputOutputHandler ioHandler) {
+    public void processPointsCommandForLoop(String command, InputOutputHandler3 ioHandler) {
         try {
             String[] parts = command.split(",\\s*");
             List<Point> points = new ArrayList<>();
@@ -328,7 +328,7 @@ public class CodeGeneration {
     *    PARAMETERS:    ioHandler - the input/output handler for displaying messages    		*
     *    RETURN VALUE:    none    																*
     ********************************************************************************************/
-    public void startPolygon(InputOutputHandler ioHandler) {
+    public void startPolygon(InputOutputHandler3 ioHandler) {
         polygonPoints.clear();
         ioHandler.appendToHistory("System: Click on the drawing area to add polygon points. Type 'endpolygon' when done.\n");
     }
@@ -339,7 +339,7 @@ public class CodeGeneration {
     *    PARAMETERS:    x - the x coordinate of the point, y - the y coordinate of the point    *
     *    RETURN VALUE:    none    																*
     ********************************************************************************************/
-    public void addPolygonPoint(int x, int y, InputOutputHandler ioHandler) {
+    public void addPolygonPoint(int x, int y, InputOutputHandler3 ioHandler) {
         polygonPoints.add(new Point(x, y));
         ioHandler.appendToHistory("Added point: (" + x + ", " + y + ")\n");
     }
@@ -350,7 +350,7 @@ public class CodeGeneration {
     *    PARAMETERS:    ioHandler - the input/output handler for displaying messages    		*
     *    RETURN VALUE:    none    																*
     ********************************************************************************************/
-    public void endPolygon(InputOutputHandler ioHandler, boolean recordingLoop) {
+    public void endPolygon(InputOutputHandler3 ioHandler, boolean recordingLoop) {
         if (polygonPoints.size() >= 3) {
             if (recordingLoop) {
                 loopShapes.add(new Polygon(new ArrayList<>(polygonPoints), fillShape));
@@ -371,7 +371,7 @@ public class CodeGeneration {
     *    PARAMETERS:    ioHandler - the input/output handler for displaying messages    *
     *    RETURN VALUE:    none    														*
     ************************************************************************************/
-    public void clearPolygon(InputOutputHandler ioHandler) {
+    public void clearPolygon(InputOutputHandler3 ioHandler) {
         polygonPoints.clear();
         ioHandler.appendToHistory("System: Polygon points cleared\n");
     }
@@ -661,7 +661,7 @@ public class CodeGeneration {
             // This method should probably be in the parent class only
         }
 
-        public void playLoop(String name, DrawingPanel panel, InputOutputHandler ioHandler) {
+        public void playLoop(String name, DrawingPanel panel, InputOutputHandler3 ioHandler) {
             // This method should probably be in the parent class only
         }
     }
@@ -691,7 +691,7 @@ public class CodeGeneration {
         *    PARAMETERS:    ioHandler - the input/output handler for displaying messages    *
         *    RETURN VALUE:    none    														*
         ************************************************************************************/
-        public void startLoopRecording(InputOutputHandler ioHandler) {
+        public void startLoopRecording(InputOutputHandler3 ioHandler) {
             loopShapes.clear();
             isRecordingLoop = true;
             ioHandler.appendToHistory("System: Loop recording started. All shapes will be added to the loop.\n");
@@ -713,7 +713,7 @@ public class CodeGeneration {
         *    PARAMETERS:    name - the name of the loop, ioHandler - for displaying messages    *
         *    RETURN VALUE:    none    															*
         ****************************************************************************************/
-        public void endLoopRecording(String name, InputOutputHandler ioHandler) {
+        public void endLoopRecording(String name, InputOutputHandler3 ioHandler) {
             if (isRecordingLoop && !loopShapes.isEmpty()) {
                 // Convert the loop shapes to commands for storage
                 List<String> commands = new ArrayList<>();
@@ -760,7 +760,7 @@ public class CodeGeneration {
          *    PARAMETERS:    name - the name of the loop, ioHandler - for displaying messages   *
          *    RETURN VALUE:    none    															*
          ***************************************************************************************/
-        public void playLoop(String name, DrawingPanel panel, InputOutputHandler ioHandler) {
+        public void playLoop(String name, DrawingPanel panel, InputOutputHandler3 ioHandler) {
             // Play back the loop with the given name
             Loop targetLoop = null;
             
@@ -805,7 +805,7 @@ public class CodeGeneration {
         *    PARAMETERS:    ioHandler - the input/output handler for displaying messages    *
         *    RETURN VALUE:    none    														*
         ************************************************************************************/
-        public void clearScreen(InputOutputHandler ioHandler) {
+        public void clearScreen(InputOutputHandler3 ioHandler) {
             shapes.clear();
             polygonPoints.clear();
             loopShapes.clear();
