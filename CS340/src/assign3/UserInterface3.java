@@ -56,7 +56,7 @@ public class UserInterface3 extends JFrame {
         // Initialize handlers
         ioHandler = new InputOutputHandler3();
         codeGeneration = new CodeGeneration3();
-        
+        ioHandler.setCodeGeneration(codeGeneration);
         // Create components
         createUIComponents();
         setupLayout();

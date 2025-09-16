@@ -626,8 +626,274 @@ public class CodeGeneration3 {
             } else {
                 g.drawPolygon(xPoints, yPoints, points.size());
             }
+            
         }
+        
+        
+     // Add these methods to your CodeGeneration3 class
+
+        /************************************************************************************
+        *    METHOD:    parseLoopCondition    												*
+        *    DESCRIPTION:    Parses and evaluates a loop condition with variables    		*
+        *    PARAMETERS:    condition - the condition string, variables - variable map    	*
+        *    RETURN VALUE:    boolean - true if condition is met, false otherwise    		*
+        ************************************************************************************/
+        private boolean parseLoopCondition(String condition, java.util.Map<String, Integer> variables) {
+            try {
+                // Replace variables with their values
+                for (String varName : variables.keySet()) {
+                    condition = condition.replace(varName, variables.get(varName).toString());
+                }
+                
+                // Evaluate simple conditions
+                if (condition.contains("<=")) {
+                    String[] parts = condition.split("<=");
+                    int left = evaluateMathExpression(parts[0].trim());
+                    int right = evaluateMathExpression(parts[1].trim());
+                    return left <= right;
+                } else if (condition.contains(">=")) {
+                    String[] parts = condition.split(">=");
+                    int left = evaluateMathExpression(parts[0].trim());
+                    int right = evaluateMathExpression(parts[1].trim());
+                    return left >= right;
+                } else if (condition.contains("<")) {
+                    String[] parts = condition.split("<");
+                    int left = evaluateMathExpression(parts[0].trim());
+                    int right = evaluateMathExpression(parts[1].trim());
+                    return left < right;
+                } else if (condition.contains(">")) {
+                    String[] parts = condition.split(">");
+                    int left = evaluateMathExpression(parts[0].trim());
+                    int right = evaluateMathExpression(parts[1].trim());
+                    return left > right;
+                } else if (condition.contains("==")) {
+                    String[] parts = condition.split("==");
+                    int left = evaluateMathExpression(parts[0].trim());
+                    int right = evaluateMathExpression(parts[1].trim());
+                    return left == right;
+                } else if (condition.contains("!=")) {
+                    String[] parts = condition.split("!=");
+                    int left = evaluateMathExpression(parts[0].trim());
+                    int right = evaluateMathExpression(parts[1].trim());
+                    return left != right;
+                }
+                
+                return false;
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
+        /************************************************************************************
+        *    METHOD:    processLoopCommand    												*
+        *    DESCRIPTION:    Processes a loop command with variable iteration    			*
+        *    PARAMETERS:    command - the loop command, ioHandler - for I/O operations    	*
+        *    RETURN VALUE:    none    														*
+        ************************************************************************************/
+        public void processLoopCommand(String command, InputOutputHandler3 ioHandler) {
+            try {
+                // Parse loop command format: loop, variable, start, end, step, condition
+                String[] parts = command.split(",\\s*");
+                if (parts.length >= 5) {
+                    String varName = parts[1].trim();
+                    int start = ioHandler.parseValue(parts[2].trim());
+                    int end = ioHandler.parseValue(parts[3].trim());
+                    int step = ioHandler.parseValue(parts[4].trim());
+                    String condition = (parts.length > 5) ? parts[5].trim() : varName + "<=" + end;
+                    
+                    java.util.Map<String, Integer> variables = new java.util.HashMap<>();
+                    variables.put(varName, start);
+                    
+                    // Store the current recording state and start recording
+                    boolean wasRecording = isRecordingLoop;
+                    List<Shape> previousLoopShapes = new ArrayList<>(loopShapes);
+                    
+                    // Process the loop body
+                    while (parseLoopCondition(condition, variables)) {
+                        // Execute the commands in the current loop recording
+                        for (Shape shape : loopShapes) {
+                            // Process the shape with current variable values
+                            Shape evaluatedShape = processShapeWithVariables(shape, variables);
+                            shapes.add(evaluatedShape);
+                        }
+                        
+                        // Update the variable
+                        variables.put(varName, variables.get(varName) + step);
+                    }
+                    
+                    // Restore previous recording state
+                    isRecordingLoop = wasRecording;
+                    loopShapes = previousLoopShapes;
+                    
+                    
+                } else {
+                    ioHandler.appendToHistory("System: Invalid loop command format. Use: loop, variable, start, end, step, [condition]\n");
+                }
+            } catch (Exception e) {
+                ioHandler.appendToHistory("System: Error processing loop command: " + e.getMessage() + "\n");
+            }
+        }
+
+        /************************************************************************************
+        *    METHOD:    evaluateShapeParameter    											*
+        *    DESCRIPTION:    Evaluates shape parameters that may contain variables or      *
+        *                   mathematical expressions with variables    					*
+        *    PARAMETERS:    param - the parameter string, variables - variable map    		*
+        *    RETURN VALUE:    int - the evaluated parameter value    						*
+        ************************************************************************************/
+        private int evaluateShapeParameter(String param, java.util.Map<String, Integer> variables) {
+            try {
+                if (param == null || param.trim().isEmpty()) {
+                    return 0;
+                }
+                
+                String expression = param.trim();
+                
+                // Replace variables with their values
+                for (String varName : variables.keySet()) {
+                    // Use word boundaries to avoid partial matches
+                    expression = expression.replaceAll("\\b" + varName + "\\b", variables.get(varName).toString());
+                }
+                
+                // Evaluate any mathematical expressions
+                return evaluateMathExpression(expression);
+            } catch (Exception e) {
+                System.err.println("Error evaluating shape parameter: " + param + " - " + e.getMessage());
+                return 0;
+            }
+        }
+        /************************************************************************************
+        *    METHOD:    evaluateMathExpression    											*
+        *    DESCRIPTION:    Evaluates mathematical expressions with proper operator       *
+        *                   precedence and parentheses support    							*
+        *    PARAMETERS:    expression - the mathematical expression string    			*
+        *    RETURN VALUE:    int - the result of the evaluation    						*
+        ************************************************************************************/
+        public int evaluateMathExpression(String expression) {
+            try {
+                // Remove any whitespace
+                expression = expression.replaceAll("\\s+", "");
+                
+                // Handle parentheses first (recursively)
+                while (expression.contains("(") && expression.contains(")")) {
+                    int openParen = expression.lastIndexOf("(");
+                    int closeParen = expression.indexOf(")", openParen);
+                    
+                    if (closeParen == -1) break;
+                    
+                    String innerExpr = expression.substring(openParen + 1, closeParen);
+                    int innerResult = evaluateMathExpression(innerExpr);
+                    expression = expression.substring(0, openParen) + innerResult + 
+                                expression.substring(closeParen + 1);
+                }
+                
+                // Handle multiplication and division
+                java.util.regex.Matcher mdMatcher = java.util.regex.Pattern.compile("([-+]?\\d+)([*/])([-+]?\\d+)").matcher(expression);
+                while (mdMatcher.find()) {
+                    int left = Integer.parseInt(mdMatcher.group(1));
+                    String operator = mdMatcher.group(2);
+                    int right = Integer.parseInt(mdMatcher.group(3));
+                    int result = operator.equals("*") ? left * right : left / right;
+                    expression = expression.replace(mdMatcher.group(0), Integer.toString(result));
+                    mdMatcher = java.util.regex.Pattern.compile("([-+]?\\d+)([*/])([-+]?\\d+)").matcher(expression);
+                }
+                
+                // Handle addition and subtraction
+                java.util.regex.Matcher asMatcher = java.util.regex.Pattern.compile("([-+]?\\d+)([+-])([-+]?\\d+)").matcher(expression);
+                while (asMatcher.find()) {
+                    int left = Integer.parseInt(asMatcher.group(1));
+                    String operator = asMatcher.group(2);
+                    int right = Integer.parseInt(asMatcher.group(3));
+                    int result = operator.equals("+") ? left + right : left - right;
+                    expression = expression.replace(asMatcher.group(0), Integer.toString(result));
+                    asMatcher = java.util.regex.Pattern.compile("([-+]?\\d+)([+-])([-+]?\\d+)").matcher(expression);
+                }
+                
+                // Final result
+                return Integer.parseInt(expression);
+            } catch (Exception e) {
+                System.err.println("Error evaluating math expression: " + expression + " - " + e.getMessage());
+                return 0;
+            }
+        }
+
+        /************************************************************************************
+        *    METHOD:    processShapeWithVariables    										*
+        *    DESCRIPTION:    Processes shapes with variable parameters in loops    			*
+        *    PARAMETERS:    shape - the shape to process, variables - variable map    		*
+        *    RETURN VALUE:    Shape - the processed shape with evaluated parameters        *
+        ************************************************************************************/
+        private Shape processShapeWithVariables(Shape shape, java.util.Map<String, Integer> variables) {
+            if (shape instanceof Circle) {
+                Circle circle = (Circle) shape;
+                int radius = evaluateShapeParameter(Integer.toString(circle.radius), variables);
+                int x = evaluateShapeParameter(Integer.toString(circle.x), variables);
+                int y = evaluateShapeParameter(Integer.toString(circle.y), variables);
+                return new Circle(x, y, radius, circle.filled);
+            } 
+            else if (shape instanceof Triangle) {
+                Triangle triangle = (Triangle) shape;
+                int x = evaluateShapeParameter(Integer.toString(triangle.x), variables);
+                int y = evaluateShapeParameter(Integer.toString(triangle.y), variables);
+                int angle = evaluateShapeParameter(Integer.toString(triangle.angle), variables);
+                return new Triangle(x, y, angle, triangle.filled);
+            } 
+            else if (shape instanceof Rectangle) {
+                Rectangle rectangle = (Rectangle) shape;
+                int x1 = evaluateShapeParameter(Integer.toString(rectangle.x1), variables);
+                int y1 = evaluateShapeParameter(Integer.toString(rectangle.y1), variables);
+                int x2 = evaluateShapeParameter(Integer.toString(rectangle.x2), variables);
+                int y2 = evaluateShapeParameter(Integer.toString(rectangle.y2), variables);
+                return new Rectangle(x1, y1, x2, y2, rectangle.filled);
+            } 
+            else if (shape instanceof Square) {
+                Square square = (Square) shape;
+                int x = evaluateShapeParameter(Integer.toString(square.x), variables);
+                int y = evaluateShapeParameter(Integer.toString(square.y), variables);
+                int size = evaluateShapeParameter(Integer.toString(square.size), variables);
+                return new Square(x, y, size, square.filled);
+            } 
+            else if (shape instanceof Polygon) {
+                Polygon polygon = (Polygon) shape;
+                List<Point> evaluatedPoints = new ArrayList<>();
+                for (Point point : polygon.points) {
+                    int x = evaluateShapeParameter(Integer.toString(point.x), variables);
+                    int y = evaluateShapeParameter(Integer.toString(point.y), variables);
+                    evaluatedPoints.add(new Point(x, y));
+                }
+                return new Polygon(evaluatedPoints, polygon.filled);
+            }
+            
+            return shape; // Return original shape if type not recognized
+        }
+        
+        
+        
+        
+        
+        
+        
+        
+        
     }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     /****************************************************************
     *    CLASS:    Loop    											*
@@ -811,6 +1077,56 @@ public class CodeGeneration3 {
             loopShapes.clear();
             ioHandler.appendToHistory("System: Screen cleared - all shapes removed\n");
         }
+        
+        /************************************************************************************
+        *    METHOD:    evaluateMathExpression    											*
+        *    DESCRIPTION:    Evaluates mathematical expressions in commands    			*
+        *    PARAMETERS:    expression - the mathematical expression string    			*
+        *    RETURN VALUE:    int - the result of the evaluation    						*
+        ************************************************************************************/
+        public int evaluateMathExpression(String expression) {
+            try {
+                // Remove any whitespace
+                expression = expression.replaceAll("\\s+", "");
+                
+                // Handle simple arithmetic operations
+                if (expression.contains("+")) {
+                    String[] parts = expression.split("\\+");
+                    int sum = 0;
+                    for (String part : parts) {
+                        sum += Integer.parseInt(part);
+                    }
+                    return sum;
+                } else if (expression.contains("-")) {
+                    String[] parts = expression.split("-");
+                    int result = Integer.parseInt(parts[0]);
+                    for (int i = 1; i < parts.length; i++) {
+                        result -= Integer.parseInt(parts[i]);
+                    }
+                    return result;
+                } else if (expression.contains("*")) {
+                    String[] parts = expression.split("\\*");
+                    int product = 1;
+                    for (String part : parts) {
+                        product *= Integer.parseInt(part);
+                    }
+                    return product;
+                } else if (expression.contains("/")) {
+                    String[] parts = expression.split("/");
+                    int result = Integer.parseInt(parts[0]);
+                    for (int i = 1; i < parts.length; i++) {
+                        result /= Integer.parseInt(parts[i]);
+                    }
+                    return result;
+                } else {
+                    // No operators found, just parse the number
+                    return Integer.parseInt(expression);
+                }
+            } catch (NumberFormatException e) {
+                return 0; // Return 0 if parsing fails
+            }
+        }
+        
         
         
     }

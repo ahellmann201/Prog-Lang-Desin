@@ -2,6 +2,10 @@ package assign3;
 
 import java.util.*;
 import java.awt.Point;
+
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
 import javax.swing.JOptionPane;
 import javax.swing.JTextArea;
 
@@ -30,7 +34,7 @@ public class InputOutputHandler3 {
     private boolean drawingPolygon = false;
     private boolean fillShape = false;
     private Map<String, Integer> variables = new HashMap<>(); // Variable storage
-    
+    private CodeGeneration3 codeGeneration;
     private JTextArea historyArea;
 
     /**************************************************************************
@@ -135,15 +139,59 @@ public class InputOutputHandler3 {
     **************************************************************************/
     public int parseValue(String value) {
         try {
-            // Check if it's a variable reference
-            if (variables.containsKey(value)) {
-                return variables.get(value);
+            // Remove any whitespace
+            value = value.replaceAll("\\s+", "");
+            
+            // Try using Nashorn engine (Java 8-14) or GraalVM (Java 15+)
+            ScriptEngineManager manager = new ScriptEngineManager();
+            ScriptEngine engine = manager.getEngineByName("JavaScript");
+            
+            // Fallback if JavaScript engine is not available
+            if (engine == null) {
+                engine = manager.getEngineByName("nashorn");
             }
-            // Otherwise parse as integer
-            return Integer.parseInt(value);
-        } catch (NumberFormatException e) {
-            appendToHistory("System: Invalid number or undefined variable: " + value + "\n");
-            return 0;
+            
+            if (engine == null) {
+                // Use manual evaluation as fallback
+                return evaluateExpressionManually(value);
+            }
+            
+            Object result = engine.eval(value);
+            if (result instanceof Number) {
+                return ((Number) result).intValue();
+            } else {
+                return evaluateExpressionManually(value);
+            }
+        } catch (ScriptException | NumberFormatException e) {
+            return evaluateExpressionManually(value);
+        }
+    }
+
+    private int evaluateExpressionManually(String expression) {
+        try {
+            // Simple manual evaluation for basic arithmetic
+            if (expression.contains("+")) {
+                String[] parts = expression.split("\\+");
+                return parseValue(parts[0]) + parseValue(parts[1]);
+            } else if (expression.contains("-")) {
+                String[] parts = expression.split("-");
+                return parseValue(parts[0]) - parseValue(parts[1]);
+            } else if (expression.contains("*")) {
+                String[] parts = expression.split("\\*");
+                return parseValue(parts[0]) * parseValue(parts[1]);
+            } else if (expression.contains("/")) {
+                String[] parts = expression.split("/");
+                return parseValue(parts[0]) / parseValue(parts[1]);
+            } else {
+                // Check if it's a variable
+                Integer varValue = getVariable(expression);
+                if (varValue != null) {
+                    return varValue;
+                }
+                return Integer.parseInt(expression);
+            }
+        } catch (Exception e) {
+            return 0; // Default fallback
         }
     }
     
@@ -244,4 +292,14 @@ public class InputOutputHandler3 {
             options[0]
         );
     }
+    /************************************************************************************
+    *    METHOD:    setCodeGeneration    												*
+    *    DESCRIPTION:    Sets the code generation instance for math evaluation    		*
+    *    PARAMETERS:    codeGeneration - the CodeGeneration3 instance    				*
+    *    RETURN VALUE:    none    														*
+    ************************************************************************************/
+    public void setCodeGeneration(CodeGeneration3 codeGeneration) {
+        this.codeGeneration = codeGeneration;
+    }
+    
 }
