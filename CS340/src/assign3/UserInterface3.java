@@ -33,6 +33,7 @@ public class UserInterface3 extends JFrame {
     private DrawingPanel drawingPanel;
     private InputOutputHandler3 ioHandler;
     private CodeGeneration3 codeGeneration;
+    private AnimationSystem animationSystem;
     
     private JToggleButton fillButton;
     private JButton clearScreenButton;
@@ -57,6 +58,8 @@ public class UserInterface3 extends JFrame {
         ioHandler = new InputOutputHandler3();
         codeGeneration = new CodeGeneration3();
         ioHandler.setCodeGeneration(codeGeneration);
+        animationSystem = new AnimationSystem(this);
+        
         // Create components
         createUIComponents();
         setupLayout();
@@ -69,6 +72,15 @@ public class UserInterface3 extends JFrame {
         displayHelp();
         
         setVisible(true);
+    }
+    /**************************************************************************
+    *    METHOD:    getAnimationSystem                                        *
+    *    DESCRIPTION:  Returns the animation system instance                  *
+    *    PARAMETERS:  None                                                    *
+    *    RETURN VALUE:  AnimationSystem - the animation system                *
+    **************************************************************************/
+    public AnimationSystem getAnimationSystem() {
+        return animationSystem;
     }
     
     /**************************************************************************
@@ -193,6 +205,72 @@ public class UserInterface3 extends JFrame {
         inputPanel.add(buttonPanel, BorderLayout.EAST);
         
         add(inputPanel, BorderLayout.SOUTH);
+        
+        JMenu animationMenu = new JMenu("Animation");
+        JMenuItem createAnimItem = new JMenuItem("Create Animation");
+        JMenuItem addKeyframeItem = new JMenuItem("Add Keyframe");
+        JMenuItem playAnimItem = new JMenuItem("Play Animation");
+        JMenuItem stopAnimItem = new JMenuItem("Stop Animation");
+        JMenuItem setDelayItem = new JMenuItem("Set Frame Delay");
+
+        createAnimItem.addActionListener(e -> {
+            String animName = ioHandler.showInputDialog("Enter animation name:");
+            if (animName != null && !animName.trim().isEmpty()) {
+                animationSystem.createAnimation(animName);
+            }
+        });
+
+        addKeyframeItem.addActionListener(e -> {
+            String frameName = ioHandler.showInputDialog("Enter keyframe name:");
+            if (frameName != null && !frameName.trim().isEmpty()) {
+                animationSystem.addKeyframe(frameName);
+            }
+        });
+
+        playAnimItem.addActionListener(e -> {
+            List<AnimationSystem.Animation> anims = animationSystem.getAnimations();
+            if (anims.isEmpty()) {
+                ioHandler.appendToHistory("System: No animations created\n");
+                return;
+            }
+            
+            String[] animNames = new String[anims.size()];
+            for (int i = 0; i < anims.size(); i++) {
+                animNames[i] = anims.get(i).getName();
+            }
+            
+            String selectedAnim = ioHandler.showSelectionDialog("Play Animation", 
+                                                               "Select animation to play:", animNames);
+            if (selectedAnim != null) {
+                animationSystem.playAnimation(selectedAnim);
+            }
+        });
+
+        stopAnimItem.addActionListener(e -> {
+            animationSystem.stopAnimation();
+        });
+
+        setDelayItem.addActionListener(e -> {
+            String delayStr = ioHandler.showInputDialog("Enter frame delay in milliseconds:");
+            if (delayStr != null && !delayStr.trim().isEmpty()) {
+                try {
+                    long delay = Long.parseLong(delayStr);
+                    animationSystem.setFrameDelay(delay);
+                } catch (NumberFormatException ex) {
+                    ioHandler.appendToHistory("System: Invalid delay value\n");
+                }
+            }
+        });
+
+        animationMenu.add(createAnimItem);
+        animationMenu.add(addKeyframeItem);
+        animationMenu.add(playAnimItem);
+        animationMenu.add(stopAnimItem);
+        animationMenu.add(setDelayItem);
+
+        // Add to menu bar
+        menuBar.add(animationMenu);
+        
     }
     
     /**************************************************************************
@@ -334,6 +412,7 @@ public class UserInterface3 extends JFrame {
         });
     }
     
+   
     /**************************************************************************
     *    METHOD:    processInput                                              *
     *    DESCRIPTION:  Processes user input from the text field               *
@@ -349,80 +428,150 @@ public class UserInterface3 extends JFrame {
             
             ioHandler.appendToHistory("You: " + text + "\n");
             inputField.setText("");
-            
+
             // Check if this is a for loop
             if (text.toLowerCase().startsWith("for(")) {
                 processForLoop(text);
                 return;
             }
             
-            // Process the command
-            if (text.equalsIgnoreCase("polygon")) {
-                ioHandler.setDrawingPolygon(true);
-                ioHandler.clearPolygonPoints();
-                ioHandler.appendToHistory("System: Click on the drawing area to add polygon points. Type 'endpolygon' when done.\n");
-            } 
-            else if (text.equalsIgnoreCase("endpolygon")) {
-                if (ioHandler.isDrawingPolygon()) {
-                    ioHandler.setDrawingPolygon(false);
-                    if (ioHandler.getPolygonPoints().size() >= 3) {
-                        codeGeneration.endPolygon(ioHandler, codeGeneration.isRecordingLoop());
-                        drawingPanel.repaint();
+            String lowerCommand = text.toLowerCase();
+            String firstWord = lowerCommand.split(" ")[0];
+            
+            // Use switch-case for organized command handling
+            switch (firstWord) {
+                case "polygon":
+                    ioHandler.setDrawingPolygon(true);
+                    ioHandler.clearPolygonPoints();
+                    ioHandler.appendToHistory("System: Click on the drawing area to add polygon points. Type 'endpolygon' when done.\n");
+                    break;
+                    
+                case "endpolygon":
+                    if (ioHandler.isDrawingPolygon()) {
+                        ioHandler.setDrawingPolygon(false);
+                        if (ioHandler.getPolygonPoints().size() >= 3) {
+                            codeGeneration.endPolygon(ioHandler, codeGeneration.isRecordingLoop());
+                            drawingPanel.repaint();
+                        } else {
+                            ioHandler.appendToHistory("System: Need at least 3 points to draw a polygon\n");
+                        }
+                    }
+                    break;
+                    
+                case "clearpolygon":
+                    ioHandler.clearPolygonPoints();
+                    drawingPanel.repaint();
+                    ioHandler.appendToHistory("System: Polygon points cleared\n");
+                    break;
+                    
+                case "fill":
+                    String[] fillParts = text.split(" ");
+                    if (fillParts.length >= 2) {
+                        if (fillParts[1].equalsIgnoreCase("on")) {
+                            codeGeneration.setFillShape(true);
+                            fillButton.setSelected(true);
+                            fillButton.setText("Fill: ON");
+                            ioHandler.appendToHistory("System: Fill mode enabled\n");
+                        } else if (fillParts[1].equalsIgnoreCase("off")) {
+                            codeGeneration.setFillShape(false);
+                            fillButton.setSelected(false);
+                            fillButton.setText("Fill: OFF");
+                            ioHandler.appendToHistory("System: Fill mode disabled\n");
+                        }
+                    }
+                    break;
+                    
+                case "set":
+                    String[] setParts = text.substring(4).split("=");
+                    if (setParts.length == 2) {
+                        String varName = setParts[0].trim();
+                        try {
+                            int value = Integer.parseInt(setParts[1].trim());
+                            ioHandler.setVariable(varName, value);
+                            ioHandler.appendToHistory("System: Set variable " + varName + " = " + value + "\n");
+                        } catch (NumberFormatException e) {
+                            ioHandler.appendToHistory("System: Invalid value for variable. Use: set var=value\n");
+                        }
                     } else {
-                        ioHandler.appendToHistory("System: Need at least 3 points to draw a polygon\n");
+                        ioHandler.appendToHistory("System: Invalid set command. Use: set var=value\n");
                     }
-                }
-            }
-            else if (text.equalsIgnoreCase("clearpolygon")) {
-                ioHandler.clearPolygonPoints();
-                drawingPanel.repaint();
-                ioHandler.appendToHistory("System: Polygon points cleared\n");
-            }
-            else if (text.startsWith("fill ")) {
-                String[] parts = text.split(" ");
-                if (parts.length >= 2) {
-                    if (parts[1].equalsIgnoreCase("on")) {
-                        codeGeneration.setFillShape(true);
-                        fillButton.setSelected(true);
-                        fillButton.setText("Fill: ON");
-                        ioHandler.appendToHistory("System: Fill mode enabled\n");
-                    } else if (parts[1].equalsIgnoreCase("off")) {
-                        codeGeneration.setFillShape(false);
-                        fillButton.setSelected(false);
-                        fillButton.setText("Fill: OFF");
-                        ioHandler.appendToHistory("System: Fill mode disabled\n");
+                    break;
+                    
+                case "animation":
+                    if (text.length() > 10) {
+                        String animName = text.substring(10).trim();
+                        animationSystem.createAnimation(animName);
+                    } else {
+                        ioHandler.appendToHistory("System: Usage: animation <name>\n");
                     }
-                }
-            }
-            else if (text.startsWith("set ")) {
-                String[] parts = text.substring(4).split("=");
-                if (parts.length == 2) {
-                    String varName = parts[0].trim();
-                    try {
-                        int value = Integer.parseInt(parts[1].trim());
-                        ioHandler.setVariable(varName, value);
-                        ioHandler.appendToHistory("System: Set variable " + varName + " = " + value + "\n");
-                    } catch (NumberFormatException e) {
-                        ioHandler.appendToHistory("System: Invalid value for variable. Use: set var=value\n");
+                    break;
+                    
+                case "keyframe":
+                    if (text.length() > 9) {
+                        String frameName = text.substring(9).trim();
+                        animationSystem.addKeyframe(frameName);
+                    } else {
+                        ioHandler.appendToHistory("System: Usage: keyframe <name>\n");
                     }
-                } else {
-                    ioHandler.appendToHistory("System: Invalid set command. Use: set var=value\n");
-                }
-            }
-            else {
-                // Process shape commands
-                if (codeGeneration.isRecordingLoop()) {
-                    processCommandForLoop(text);
-                } else {
-                    processCommand(text);
-                }
-            }}
-            else if (text.equalsIgnoreCase("clear")) {
-                codeGeneration.clearScreen(ioHandler);
-                drawingPanel.repaint();
-                ioHandler.appendToHistory("System: Screen cleared\n");
+                    break;
+                    
+                case "play":
+                	if (text.length() > 5) {
+                        String animName = text.substring(5).trim();
+                        // For simple "play animName" - loop continuously
+                        animationSystem.playAnimation(animName);
+                    } else {
+                        ioHandler.appendToHistory("System: Usage: play <animationName>\n");
+                    }
+                    break;
+                    
+                case "stop":
+                    animationSystem.stopAnimation();
+                    break;
+                    
+                case "delay":
+                    if (text.length() > 6) {
+                        try {
+                            long delay = Long.parseLong(text.substring(6).trim());
+                            animationSystem.setFrameDelay(delay);
+                        } catch (NumberFormatException e) {
+                            ioHandler.appendToHistory("System: Invalid delay value. Usage: delay <milliseconds>\n");
+                        }
+                    } else {
+                        ioHandler.appendToHistory("System: Usage: delay <milliseconds>\n");
+                    }
+                    break;
+                    
+                case "clear":
+                    codeGeneration.clearScreen(ioHandler);
+                    drawingPanel.repaint();
+                    ioHandler.appendToHistory("System: Screen cleared\n");
+                    break;
+                    
+                case "help":
+                    displayHelp();
+                    break;
+                    
+                default:
+                    // Process shape commands
+                    if (lowerCommand.startsWith("circle") || 
+                        lowerCommand.startsWith("triangle") || 
+                        lowerCommand.startsWith("rectangle") || 
+                        lowerCommand.startsWith("square") || 
+                        lowerCommand.startsWith("points")) {
+                        
+                        if (codeGeneration.isRecordingLoop()) {
+                            processCommandForLoop(text);
+                        } else {
+                            processCommand(text);
+                        }
+                    } else {
+                        ioHandler.appendToHistory("System: Unknown command: " + text + "\nType 'help' for available commands\n");
+                    }
+                    break;
             }
         }
+    }
     
     /**************************************************************************
     *    METHOD:    processForLoop                                           *
@@ -799,7 +948,7 @@ public class UserInterface3 extends JFrame {
     private void displayHelp() {
         ioHandler.appendToHistory("Available commands:\n");
         ioHandler.appendToHistory("circle, radius, x, y\n");
-        ioHandler.appendToHistory("triangle, x, y, angle\n");
+        ioHandler.appendToHistory("triangle, x1, y1, x2, y2, x3, y3 - \n");
         ioHandler.appendToHistory("rectangle, x1, y1, x2, y2\n");
         ioHandler.appendToHistory("square, x, y, size\n\n");
         
@@ -816,6 +965,21 @@ public class UserInterface3 extends JFrame {
         
         ioHandler.appendToHistory("fill on / fill off - Toggle fill mode for shapes\n");
         ioHandler.appendToHistory("clear - Clear all shapes from the screen\n");
+        
+        ioHandler.appendToHistory("\n=== ANIMATION COMMANDS ===\n");
+        ioHandler.appendToHistory("animation <name> - Create a new animation\n");
+        ioHandler.appendToHistory("keyframe <name> - Capture current shapes as a keyframe\n");
+        ioHandler.appendToHistory("play <animationName> - Play the specified animation\n");
+        ioHandler.appendToHistory("stop - Stop the current animation\n");
+        ioHandler.appendToHistory("delay <ms> - Set frame delay in milliseconds\n");
+        ioHandler.appendToHistory("\nAnimation workflow:\n");
+        ioHandler.appendToHistory("1. animation myAnim - Create animation\n");
+        ioHandler.appendToHistory("2. Draw shapes for frame 1\n");
+        ioHandler.appendToHistory("3. keyframe frame1 - Save frame 1\n");
+        ioHandler.appendToHistory("4. clear - Clear screen\n");
+        ioHandler.appendToHistory("5. Draw shapes for frame 2\n");
+        ioHandler.appendToHistory("6. keyframe frame2 - Save frame 2\n");
+        ioHandler.appendToHistory("7. play myAnim - Play animation\n");
     }
     
     /**************************************************************************
@@ -860,6 +1024,7 @@ public class UserInterface3 extends JFrame {
      public CodeGeneration3 getCodeGeneration() {
          return codeGeneration;
      }
+     
 }
 
 

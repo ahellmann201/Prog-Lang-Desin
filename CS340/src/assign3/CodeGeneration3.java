@@ -98,58 +98,66 @@ public class CodeGeneration3 {
     
     /************************************************************************************
     *    METHOD:    processTriangleCommand    											*
-    *    DESCRIPTION:    Processes a triangle drawing command    						*
+    *    DESCRIPTION:    Processes a triangle drawing command with 3 points    		*
     *    PARAMETERS:    command - the command string containing triangle parameters    	*
     *    RETURN VALUE:    none    														*
     ************************************************************************************/
     public void processTriangleCommand(String command, InputOutputHandler3 ioHandler) {
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("triangle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("triangle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
         
         if (matcher.find()) {
             try {
-                int x = ioHandler.parseValue(matcher.group(1).trim());
-                int y = ioHandler.parseValue(matcher.group(2).trim());
-                int angle = ioHandler.parseValue(matcher.group(3).trim());
+                int x1 = ioHandler.parseValue(matcher.group(1).trim());
+                int y1 = ioHandler.parseValue(matcher.group(2).trim());
+                int x2 = ioHandler.parseValue(matcher.group(3).trim());
+                int y2 = ioHandler.parseValue(matcher.group(4).trim());
+                int x3 = ioHandler.parseValue(matcher.group(5).trim());
+                int y3 = ioHandler.parseValue(matcher.group(6).trim());
                 
-                shapes.add(new Triangle(x, y, angle, fillShape));
-                ioHandler.appendToHistory("System: Triangle drawn at (" + x + ", " + y + ") with angle " + angle + 
-                                  " (filled: " + fillShape + ")\n");
+                if (isRecordingLoop) {
+                    loopShapes.add(new Triangle(x1, y1, x2, y2, x3, y3, fillShape));
+                    ioHandler.appendToHistory("System: Triangle added to loop with points (" + x1 + "," + y1 + "), (" + x2 + "," + y2 + "), (" + x3 + "," + y3 + ")\n");
+                } else {
+                    shapes.add(new Triangle(x1, y1, x2, y2, x3, y3, fillShape));
+                    ioHandler.appendToHistory("System: Triangle drawn with points (" + x1 + "," + y1 + "), (" + x2 + "," + y2 + "), (" + x3 + "," + y3 + ")\n");
+                }
             } catch (NumberFormatException e) {
-                ioHandler.appendToHistory("System: Invalid numbers in triangle command. Use: triangle, x, y, angle\n");
+                ioHandler.appendToHistory("System: Invalid numbers in triangle command. Use: triangle, x1, y1, x2, y2, x3, y3\n");
             }
         } else {
-            ioHandler.appendToHistory("System: Invalid triangle command format. Use: triangle, x, y, angle\n");
+            ioHandler.appendToHistory("System: Invalid triangle command format. Use: triangle, x1, y1, x2, y2, x3, y3\n");
         }
     }
     
     /************************************************************************************
     *    METHOD:    processTriangleCommandForLoop    									*
-    *    DESCRIPTION:    Processes a triangle command for loop recording    			*
-    *    PARAMETERS:    command - the command string containing triangle parameters    	*
+    *    DESCRIPTION:    Processes a triangle command for loop recording with 3 points *
+    *    PARAMETERS:    command - the command string containing triangle parameters    *
     *    RETURN VALUE:    none    														*
     ************************************************************************************/
     public void processTriangleCommandForLoop(String command, InputOutputHandler3 ioHandler) {
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("triangle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("triangle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
         
         if (matcher.find()) {
             try {
-                int x = ioHandler.parseValue(matcher.group(1).trim());
-                int y = ioHandler.parseValue(matcher.group(2).trim());
-                int angle = ioHandler.parseValue(matcher.group(3).trim());
+                int x1 = ioHandler.parseValue(matcher.group(1).trim());
+                int y1 = ioHandler.parseValue(matcher.group(2).trim());
+                int x2 = ioHandler.parseValue(matcher.group(3).trim());
+                int y2 = ioHandler.parseValue(matcher.group(4).trim());
+                int x3 = ioHandler.parseValue(matcher.group(5).trim());
+                int y3 = ioHandler.parseValue(matcher.group(6).trim());
                 
-                loopShapes.add(new Triangle(x, y, angle, fillShape));
-                ioHandler.appendToHistory("System: Triangle added to loop at (" + x + ", " + y + ") with angle " + angle + 
-                                  " (filled: " + fillShape + ")\n");
+                loopShapes.add(new Triangle(x1, y1, x2, y2, x3, y3, fillShape));
+                ioHandler.appendToHistory("System: Triangle added to loop with points (" + x1 + "," + y1 + "), (" + x2 + "," + y2 + "), (" + x3 + "," + y3 + ")\n");
             } catch (NumberFormatException e) {
-                ioHandler.appendToHistory("System: Invalid numbers in triangle command. Use: triangle, x, y, angle\n");
+                ioHandler.appendToHistory("System: Invalid numbers in triangle command. Use: triangle, x1, y1, x2, y2, x3, y3\n");
             }
         } else {
-            ioHandler.appendToHistory("System: Invalid triangle command format. Use: triangle, x, y, angle\n");
+            ioHandler.appendToHistory("System: Invalid triangle command format. Use: triangle, x1, y1, x2, y2, x3, y3\n");
         }
     }
-    
     /************************************************************************************
     *    METHOD:    processRectangleCommand    											*
     *    DESCRIPTION:    Processes a rectangle drawing command    						*
@@ -510,28 +518,24 @@ public class CodeGeneration3 {
     *    DESCRIPTION:    Represents a triangle shape    *
     ****************************************************/
     class Triangle extends Shape {
-        int x, y, angle;
+        int x1, y1, x2, y2, x3, y3;
         
-        Triangle(int x, int y, int angle, boolean filled) {
+        Triangle(int x1, int y1, int x2, int y2, int x3, int y3, boolean filled) {
             super(filled);
-            this.x = x;
-            this.y = y;
-            this.angle = angle;
+            this.x1 = x1;
+            this.y1 = y1;
+            this.x2 = x2;
+            this.y2 = y2;
+            this.x3 = x3;
+            this.y3 = y3;
         }
         
         @Override
         void draw(Graphics g) {
             g.setColor(Color.RED);
             
-            // Calculate triangle points based on angle
-            int size = 50; // Default size
-            int x2 = x + (int)(size * Math.cos(Math.toRadians(angle)));
-            int y2 = y - (int)(size * Math.sin(Math.toRadians(angle)));
-            int x3 = x + (int)(size * Math.cos(Math.toRadians(angle + 120)));
-            int y3 = y - (int)(size * Math.sin(Math.toRadians(angle + 120)));
-            
-            int[] xPoints = {x, x2, x3};
-            int[] yPoints = {y, y2, y3};
+            int[] xPoints = {x1, x2, x3};
+            int[] yPoints = {y1, y2, y3};
             
             if (filled) {
                 g.fillPolygon(xPoints, yPoints, 3);
@@ -540,6 +544,7 @@ public class CodeGeneration3 {
             }
         }
     }
+        
     
     /****************************************************
     *    CLASS:    Rectangle    						*
@@ -831,13 +836,16 @@ public class CodeGeneration3 {
                 int y = evaluateShapeParameter(Integer.toString(circle.y), variables);
                 return new Circle(x, y, radius, circle.filled);
             } 
-            else if (shape instanceof Triangle) {
-                Triangle triangle = (Triangle) shape;
-                int x = evaluateShapeParameter(Integer.toString(triangle.x), variables);
-                int y = evaluateShapeParameter(Integer.toString(triangle.y), variables);
-                int angle = evaluateShapeParameter(Integer.toString(triangle.angle), variables);
-                return new Triangle(x, y, angle, triangle.filled);
-            } 
+         else if (shape instanceof Triangle) {
+            Triangle triangle = (Triangle) shape;
+            int x1 = evaluateShapeParameter(Integer.toString(triangle.x1), variables);
+            int y1 = evaluateShapeParameter(Integer.toString(triangle.y1), variables);
+            int x2 = evaluateShapeParameter(Integer.toString(triangle.x2), variables);
+            int y2 = evaluateShapeParameter(Integer.toString(triangle.y2), variables);
+            int x3 = evaluateShapeParameter(Integer.toString(triangle.x3), variables);
+            int y3 = evaluateShapeParameter(Integer.toString(triangle.y3), variables);
+            return new Triangle(x1, y1, x2, y2, x3, y3, triangle.filled);
+        }
             else if (shape instanceof Rectangle) {
                 Rectangle rectangle = (Rectangle) shape;
                 int x1 = evaluateShapeParameter(Integer.toString(rectangle.x1), variables);
@@ -990,7 +998,9 @@ public class CodeGeneration3 {
                         commands.add("circle, " + circle.radius + ", " + circle.x + ", " + circle.y);
                     } else if (shape instanceof Triangle) {
                         Triangle triangle = (Triangle) shape;
-                        commands.add("triangle, " + triangle.x + ", " + triangle.y + ", " + triangle.angle);
+                        commands.add("triangle, " + triangle.x1 + ", " + triangle.y1 + ", " + 
+                                                 triangle.x2 + ", " + triangle.y2 + ", " + 
+                                                 triangle.x3 + ", " + triangle.y3);
                     } else if (shape instanceof Rectangle) {
                         Rectangle rectangle = (Rectangle) shape;
                         commands.add("rectangle, " + rectangle.x1 + ", " + rectangle.y1 + ", " + 
