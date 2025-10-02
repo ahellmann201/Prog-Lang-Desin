@@ -37,6 +37,7 @@ public class UserInterface3 extends JFrame {
     
     private JToggleButton fillButton;
     private JButton clearScreenButton;
+    private JButton undoButton;
     
     private List<String> commandHistory = new ArrayList<>();
     private int historyIndex = -1;
@@ -102,6 +103,7 @@ public class UserInterface3 extends JFrame {
         // Create control buttons
         fillButton = new JToggleButton("Fill: OFF");
         clearScreenButton = new JButton("Clear Screen");
+        undoButton = new JButton("Undo Last Command");
     }
     
     /**************************************************************************
@@ -199,6 +201,7 @@ public class UserInterface3 extends JFrame {
         // Add buttons and menu bar to button panel
         buttonPanel.add(new JButton("Send"));
         buttonPanel.add(fillButton);
+        buttonPanel.add(undoButton);
         buttonPanel.add(clearScreenButton);
         buttonPanel.add(menuBar);
         
@@ -291,6 +294,12 @@ public class UserInterface3 extends JFrame {
             codeGeneration.setFillShape(fillMode);
             fillButton.setText(fillMode ? "Fill: ON" : "Fill: OFF");
             ioHandler.appendToHistory("System: Fill mode " + (fillMode ? "enabled\n" : "disabled\n"));
+        });
+     // Undo button
+        undoButton.addActionListener(e -> {
+            if (codeGeneration.undoLastCommand(ioHandler)) {
+                drawingPanel.repaint();
+            }
         });
         
         // Clear screen button
