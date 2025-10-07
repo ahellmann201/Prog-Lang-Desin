@@ -241,10 +241,40 @@ public class FileReader3 {
         else if (lowerCommand.startsWith("points")) {
             codeGen.processPointsCommand(command, ioHandler);
         }
+        else if (lowerCommand.startsWith("animation ")) {
+            if (command.length() > 10) {
+                String animName = command.substring(10).trim();
+                ui.getAnimationSystem().createAnimation(animName);
+            }
+        }
+        else if (lowerCommand.startsWith("keyframe ")) {
+            if (command.length() > 9) {
+                String frameName = command.substring(9).trim();
+                ui.getAnimationSystem().addKeyframe(frameName);
+            }
+        }
+        else if (lowerCommand.startsWith("play ")) {
+            if (command.length() > 5) {
+                String animName = command.substring(5).trim();
+                ui.getAnimationSystem().playAnimation(animName);
+            }
+        }
+        else if (lowerCommand.equals("stop")) {
+            ui.getAnimationSystem().stopAnimation();
+        }
+        else if (lowerCommand.startsWith("delay ")) {
+            if (command.length() > 6) {
+                try {
+                    long delay = Long.parseLong(command.substring(6).trim());
+                    ui.getAnimationSystem().setFrameDelay(delay);
+                } catch (NumberFormatException e) {
+                    // Ignore parse errors in file
+                }
+            }
+        }
         else {
             ioHandler.appendToHistory("System: Unknown command: " + command + "\n");
         }
-        
         ui.getDrawingPanel().repaint();
     }
 }
