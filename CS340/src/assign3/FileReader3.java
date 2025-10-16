@@ -30,6 +30,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 public class FileReader3 {
     private UserInterface3 ui;
     private InputOutputHandler3 ioHandler;
+    private TokenEncoder tokenEncoder;
     
     /**************************************************************************
     *    METHOD:    FileReader Constructor                                    *
@@ -40,6 +41,7 @@ public class FileReader3 {
     public FileReader3(UserInterface3 ui) {
         this.ui = ui;
         this.ioHandler = ui.getIOHandler();
+        this.tokenEncoder = ui.getTokenEncoder();
     }
     
     /**************************************************************************
