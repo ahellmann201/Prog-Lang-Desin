@@ -1,16 +1,15 @@
 package assign3;
-
 import java.util.*;
 import javax.swing.JOptionPane;
 
-/***********************************************************************
- * CLASS: Interpreter
- * DESCRIPTION: Handles interpretation of the programming language
- * PROGRAMMER: [Your Name]
- * COURSE: CS340 Programming Lang/Design
- * DATE: [Current Date]
- * COPYRIGHT: This code is copyright (c)2025 [Your Name] and Dean Zeller.
- ***********************************************************************/
+/*********************************************************************
+* CLASS: Interpreter
+* DESCRIPTION: Handles interpretation of the programming language
+* PROGRAMMER: [Your Name]
+* COURSE: CS340 Programming Lang/Design
+* DATE: [Current Date]
+* COPYRIGHT: This code is copyright (c)2025 [Your Name] and Dean Zeller.
+***********************************************************************/
 public class Interpreter {
     private Map<String, Integer> variables = new HashMap<>();
     private TokenEncoder tokenEncoder;
@@ -103,7 +102,6 @@ public class Interpreter {
     private List<String> tokenizeLine(String line) {
         List<String> tokens = new ArrayList<>();
         StringBuilder currentToken = new StringBuilder();
-        boolean inQuotes = false;
         
         for (int i = 0; i < line.length(); i++) {
             char c = line.charAt(i);
@@ -113,7 +111,7 @@ public class Interpreter {
                     tokens.add(currentToken.toString());
                     currentToken.setLength(0);
                 }
-            } else if (c == ';' || c == '(' || c == ')' || c == '=' || c == '#') {
+            } else if (c == ',' || c == '(' || c == ')' || c == '=' || c == ';' || c == '#') {
                 if (currentToken.length() > 0) {
                     tokens.add(currentToken.toString());
                     currentToken.setLength(0);
@@ -149,7 +147,6 @@ public class Interpreter {
             if (codeGenerator != null && !codeGenerator.equals("no_op")) {
                 codeGenerators.add(codeGenerator);
             }
-            
             // Execute the code generator immediately
             executeCodeGenerator(codeGenerator, tokens, i);
         }
@@ -173,30 +170,24 @@ public class Interpreter {
                 if (nextToken == ASSIGN) return "start_define";
                 if (nextToken == SEMICOLON) return "end_define";
                 break;
-                
             case INPUT:
                 if (nextToken == LEFT_PAREN) return "start_input";
                 break;
-                
             case PRINT:
                 if (nextToken == LEFT_PAREN) return "start_print";
                 break;
-                
             case ASSIGN:
                 if (nextToken == SEMICOLON) return "end_define";
                 break;
-                
             case LEFT_PAREN:
+                if (nextToken == RIGHT_PAREN) return "end_paren";
                 break;
-                
             case RIGHT_PAREN:
                 if (nextToken == SEMICOLON) return "no_op";
                 break;
-                
             case SEMICOLON:
                 return "no_op";
         }
-        
         return null; // Syntax error
     }
     
@@ -215,23 +206,18 @@ public class Interpreter {
             case "start_define":
                 startDefine(tokens, index);
                 break;
-                
             case "end_define":
                 endDefine();
                 break;
-                
             case "start_input":
                 startInput();
                 break;
-                
             case "start_print":
                 startPrint();
                 break;
-                
             case "end_paren":
                 endParen(tokens, index);
                 break;
-                
             case "no_op":
                 // Do nothing
                 break;
@@ -306,14 +292,14 @@ public class Interpreter {
             String operand = tokens.get(index - 1);
             
             if ("input".equals(currentOperation)) {
-                // Handle input
+                // Handle Input
                 String inputValue = JOptionPane.showInputDialog("Enter value for " + operand + ":");
                 if (inputValue != null) {
                     try {
                         int value = Integer.parseInt(inputValue.trim());
                         variables.put(operand, value);
                         
-                        if (!verboseMode) {
+                        if (verboseMode) {
                             ioHandler.appendToHistory("=> " + value + "\n");
                         } else {
                             ioHandler.appendToHistory("Input received: " + operand + " = " + value + "\n");
@@ -332,8 +318,7 @@ public class Interpreter {
                     } else {
                         value = variables.getOrDefault(operand, 0);
                     }
-                    
-                    if (!verboseMode) {
+                    if (verboseMode) {
                         ioHandler.appendToHistory(value + "\n");
                     } else {
                         ioHandler.appendToHistory("Printing: " + value + "\n");
@@ -342,9 +327,8 @@ public class Interpreter {
                     ioHandler.appendToHistory("Error: Cannot print " + operand + "\n");
                 }
             }
-            
-            resetState();
         }
+        resetState();
     }
     
     /***********************************************************************
