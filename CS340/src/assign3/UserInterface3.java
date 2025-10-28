@@ -33,7 +33,9 @@ public class UserInterface3 extends JFrame {
     private CodeGeneration3 codeGeneration;
     private AnimationSystem animationSystem;
     private TokenEncoder tokenEncoder;
-
+    private Interpreter interpreter;
+    private JToggleButton interpreterModeButton;
+    
     private JToggleButton fillButton;
     private JButton clearScreenButton;
     private JButton sendButton;
@@ -61,8 +63,8 @@ public class UserInterface3 extends JFrame {
         codeGeneration = new CodeGeneration3();
         ioHandler.setCodeGeneration(codeGeneration);
         animationSystem = new AnimationSystem(this);
-        tokenEncoder = new TokenEncoder();  // NEW: Initialize token encoder
-
+        tokenEncoder = new TokenEncoder();  
+        interpreter = new Interpreter(tokenEncoder, ioHandler);
         // Create components
         createUIComponents();
         setupLayout();
@@ -119,6 +121,7 @@ public class UserInterface3 extends JFrame {
         sendButton = new JButton("Send");  // Explicitly create send button
         encodingButton = new JToggleButton("Encoding: OFF");
         undoButton = new JButton("Undo");
+        interpreterModeButton = new JToggleButton("Interpreter: Actual");
     }
 
     /********************************************************************
@@ -336,6 +339,13 @@ public class UserInterface3 extends JFrame {
                 ioHandler.appendToHistory("System: No shapes to undo\n");
             }
         });
+        interpreterModeButton.addActionListener(e -> {
+            boolean verbose = interpreterModeButton.isSelected();
+            interpreter.setVerboseMode(verbose);
+            interpreterModeButton.setText(verbose ? "Interpreter: Verbose" : "Interpreter: Actual");
+            ioHandler.appendToHistory("System: Interpreter mode set to " + 
+                (verbose ? "verbose\n" : "actual\n"));
+        });
      // Add keyboard shortcut for undo (Ctrl+Z)
         inputField.addKeyListener(new KeyAdapter() {
             @Override
@@ -425,7 +435,15 @@ public class UserInterface3 extends JFrame {
         } else {
             processCommandNormally(text);
         }
+        // Check if this is an interpreter command
+        if (text.startsWith("integer") || text.startsWith("input") || text.startsWith("print")) {
+            processInterpreterCommand(text);
+        } else {
+            // Process as regular command (your existing logic)
+            processCommandNormally(text);
+        }
     }
+    
 
     /********************************************************************
      * METHOD: processCommandNormally
@@ -1060,6 +1078,14 @@ public class UserInterface3 extends JFrame {
         }
 
         drawingPanel.repaint();
+    }
+    private void processInterpreterCommand(String text) {
+        if (text.startsWith("integer") || text.startsWith("input") || text.startsWith("print")) {
+            interpreter.interpretLine(text);
+        } else {
+            // Process as regular drawing command
+            processCommandNormally(text);
+        }
     }
 }
 
