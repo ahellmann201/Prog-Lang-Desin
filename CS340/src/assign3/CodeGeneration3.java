@@ -36,6 +36,9 @@ public class CodeGeneration3 {
     private List<Shape> loopShapes = new ArrayList<>(); // Shapes in the current loop
     private boolean isRecordingLoop = false;
     
+    private List<List<Shape>> shapeHistory = new ArrayList<>();
+    private int currentHistoryIndex = -1;
+    
     /************************************************************************************
     *    METHOD:    processCircleCommand    											*
     *    DESCRIPTION:    Processes a circle drawing command    							*
@@ -43,7 +46,8 @@ public class CodeGeneration3 {
     *    RETURN VALUE:    none    														*
     ************************************************************************************/
     public void processCircleCommand(String command, InputOutputHandler3 ioHandler) {
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("circle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
+    	saveState();
+    	java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("circle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
         
         if (matcher.find()) {
@@ -76,6 +80,7 @@ public class CodeGeneration3 {
     *    RETURN VALUE:    none    														*
     *************************************************************************************/
     public void processCircleCommandForLoop(String command, InputOutputHandler3 ioHandler) {
+    	saveState();
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("circle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
         
@@ -95,7 +100,93 @@ public class CodeGeneration3 {
             ioHandler.appendToHistory("System: Invalid circle command format. Use: circle, radius, x, y\n");
         }
     }
-    
+    /****
+    *    METHOD:    saveState                                                          *
+    *    DESCRIPTION:    Saves the current state for undo functionality                *
+    *    PARAMETERS:    none                                                          *
+    *    RETURN VALUE:    none                                                        *
+    ************************************************************************************/
+    public void saveState() {
+        // Remove any future states if we're not at the end of history
+        if (currentHistoryIndex < shapeHistory.size() - 1) {
+            shapeHistory.subList(currentHistoryIndex + 1, shapeHistory.size()).clear();
+        }
+        
+        // Create a deep copy of current shapes
+        List<Shape> stateCopy = new ArrayList<>();
+        for (Shape shape : getShapes()) {  // CHANGED: shapes → getShapes()
+            stateCopy.add(cloneShape(shape));
+        }
+        
+        shapeHistory.add(stateCopy);
+        currentHistoryIndex = shapeHistory.size() - 1;
+        
+        // Limit history size to prevent memory issues
+        if (shapeHistory.size() > 50) {
+            shapeHistory.remove(0);
+            currentHistoryIndex--;
+        }
+    }
+
+    /************************************************************************************
+    *    METHOD:    undoLastCommand                                                    *
+    *    DESCRIPTION:    Reverts to the previous state                                *
+    *    PARAMETERS:    ioHandler - for displaying messages                           *
+    *    RETURN VALUE:    boolean - true if undo was successful, false otherwise      *
+    ************************************************************************************/
+    public boolean undoLastCommand(InputOutputHandler3 ioHandler) {
+        if (currentHistoryIndex > 0) {
+            currentHistoryIndex--;
+            
+            // Restore previous state
+            getShapes().clear();  // CHANGED: shapes → getShapes()
+            List<Shape> previousState = shapeHistory.get(currentHistoryIndex);
+            for (Shape shape : previousState) {
+                getShapes().add(cloneShape(shape));  // CHANGED: shapes → getShapes()
+            }
+            
+            ioHandler.appendToHistory("System: Undo successful - reverted to previous state\n");
+            return true;
+        } else if (currentHistoryIndex == 0) {
+            // Go back to empty state
+            getShapes().clear();  // CHANGED: shapes → getShapes()
+            currentHistoryIndex = -1;
+            shapeHistory.clear();
+            ioHandler.appendToHistory("System: Undo successful - cleared all shapes\n");
+            return true;
+        } else {
+            ioHandler.appendToHistory("System: Nothing to undo\n");
+            return false;
+        }
+    }
+
+    /************************************************************************************
+    *    METHOD:    cloneShape                                                         *
+    *    DESCRIPTION:    Creates a deep copy of a shape                               *
+    *    PARAMETERS:    Shape shape - shape to clone                                  *
+    *    RETURN VALUE:    Shape - cloned shape                                        *
+    ************************************************************************************/
+    private Shape cloneShape(Shape shape) {
+        if (shape instanceof Circle) {
+            Circle circle = (Circle) shape;
+            return new Circle(circle.x, circle.y, circle.radius, circle.filled);
+        } else if (shape instanceof Triangle) {
+            Triangle triangle = (Triangle) shape;
+            return new Triangle(triangle.x1, triangle.y1, triangle.x2, triangle.y2, 
+                               triangle.x3, triangle.y3, triangle.filled);
+        } else if (shape instanceof Rectangle) {
+            Rectangle rect = (Rectangle) shape;
+            return new Rectangle(rect.x1, rect.y1, rect.x2, rect.y2, rect.filled);
+        } else if (shape instanceof Square) {
+            Square square = (Square) shape;
+            return new Square(square.x, square.y, square.size, square.filled);
+        } else if (shape instanceof Polygon) {
+            Polygon polygon = (Polygon) shape;
+            List<Point> pointsCopy = new ArrayList<>(polygon.points);
+            return new Polygon(pointsCopy, polygon.filled);
+        }
+        return null;
+    }
     /************************************************************************************
     *    METHOD:    processTriangleCommand    											*
     *    DESCRIPTION:    Processes a triangle drawing command with 3 points    		*
@@ -103,6 +194,7 @@ public class CodeGeneration3 {
     *    RETURN VALUE:    none    														*
     ************************************************************************************/
     public void processTriangleCommand(String command, InputOutputHandler3 ioHandler) {
+    	 saveState();
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("triangle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
         
@@ -137,6 +229,7 @@ public class CodeGeneration3 {
     *    RETURN VALUE:    none    														*
     ************************************************************************************/
     public void processTriangleCommandForLoop(String command, InputOutputHandler3 ioHandler) {
+    	 saveState();
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("triangle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
         
@@ -165,6 +258,7 @@ public class CodeGeneration3 {
     *    RETURN VALUE:    none    														*
     ************************************************************************************/
     public void processRectangleCommand(String command, InputOutputHandler3 ioHandler) {
+    	 saveState();
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("rectangle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
         
@@ -193,6 +287,7 @@ public class CodeGeneration3 {
     *    RETURN VALUE:    none    														*
     ************************************************************************************/
     public void processRectangleCommandForLoop(String command, InputOutputHandler3 ioHandler) {
+    	 saveState();
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("rectangle\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
         
@@ -221,6 +316,7 @@ public class CodeGeneration3 {
     *    RETURN VALUE:    none    														*
     ************************************************************************************/
     public void processSquareCommand(String command, InputOutputHandler3 ioHandler) {
+    	 saveState();
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("square\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
         
@@ -248,6 +344,7 @@ public class CodeGeneration3 {
     *    RETURN VALUE:    none    														*
     ************************************************************************************/
     public void processSquareCommandForLoop(String command, InputOutputHandler3 ioHandler) {
+    	 saveState();
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("square\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
         java.util.regex.Matcher matcher = pattern.matcher(command);
         
@@ -275,6 +372,7 @@ public class CodeGeneration3 {
     *    RETURN VALUE:    none    														*
     ************************************************************************************/
     public void processPointsCommand(String command, InputOutputHandler3 ioHandler) {
+    	 saveState();
         try {
             String[] parts = command.split(",\\s*");
             List<Point> points = new ArrayList<>();
@@ -306,6 +404,7 @@ public class CodeGeneration3 {
     *    RETURN VALUE:    none    																*
     ********************************************************************************************/
     public void processPointsCommandForLoop(String command, InputOutputHandler3 ioHandler) {
+    	 saveState();
         try {
             String[] parts = command.split(",\\s*");
             List<Point> points = new ArrayList<>();
@@ -337,6 +436,7 @@ public class CodeGeneration3 {
     *    RETURN VALUE:    none    																*
     ********************************************************************************************/
     public void startPolygon(InputOutputHandler3 ioHandler) {
+    	 saveState();
         polygonPoints.clear();
         ioHandler.appendToHistory("System: Click on the drawing area to add polygon points. Type 'endpolygon' when done.\n");
     }
@@ -359,6 +459,7 @@ public class CodeGeneration3 {
     *    RETURN VALUE:    none    																*
     ********************************************************************************************/
     public void endPolygon(InputOutputHandler3 ioHandler, boolean recordingLoop) {
+    	 saveState();
         if (polygonPoints.size() >= 3) {
             if (recordingLoop) {
                 loopShapes.add(new Polygon(new ArrayList<>(polygonPoints), fillShape));
@@ -1082,6 +1183,7 @@ public class CodeGeneration3 {
         *    RETURN VALUE:    none    														*
         ************************************************************************************/
         public void clearScreen(InputOutputHandler3 ioHandler) {
+        	 saveState();
             shapes.clear();
             polygonPoints.clear();
             loopShapes.clear();
