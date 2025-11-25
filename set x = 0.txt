@@ -1,0 +1,3 @@
+set x = 5
+for(x=5;x<=200;x+=5): circle,x,250,250
+for(x=3;x<=90;x+=3):triangle,400,400,x
