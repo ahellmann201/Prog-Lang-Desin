@@ -1,0 +1,42 @@
+animation dancingPenguin
+
+circle, 60, 400, 300
+circle, 25, 400, 250
+circle, 5, 390, 245
+circle, 5, 410, 245
+triangle, 400, 260, 395, 270, 405, 270
+circle, 15, 380, 350
+circle, 15, 420, 350
+triangle, 340, 290, 340, 330, 370, 310
+triangle, 460, 290, 460, 330, 430, 310
+
+keyframe frame1
+clear
+
+circle, 60, 400, 300
+circle, 25, 400, 250
+circle, 5, 390, 245
+circle, 5, 410, 245
+triangle, 400, 260, 395, 270, 405, 270
+circle, 15, 380, 350
+circle, 15, 420, 340
+triangle, 340, 270, 340, 310, 370, 290
+triangle, 460, 270, 460, 310, 430, 290
+
+keyframe frame2
+clear
+
+circle, 60, 400, 300
+circle, 25, 400, 250
+circle, 5, 390, 245
+circle, 5, 410, 245
+triangle, 400, 260, 395, 270, 405, 270
+circle, 15, 380, 340
+circle, 15, 420, 350
+triangle, 340, 290, 340, 330, 370, 310
+triangle, 460, 290, 460, 330, 430, 310
+
+keyframe frame3
+
+delay 300
+play dancingPenguin
