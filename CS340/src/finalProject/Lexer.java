@@ -7,7 +7,6 @@ import java.util.regex.Pattern;
 
 public class Lexer {
 
-    // FIXED REGEX: Added < and > to the operator group
     private static final String REGEX = 
         "([a-zA-Z][a-zA-Z0-9]*)|" + // Words
         "(\\d+)|" +                 // Numbers
@@ -32,7 +31,8 @@ public class Lexer {
     }
 
     private Token.Type determineType(String val) {
-        if (val.matches("if|while|print|var|int|draw|circle|rect|line|color|clear|sleep|help")) return Token.Type.KEYWORD;
+        // Added 'triangle' and 'else'
+        if (val.matches("if|else|while|print|var|int|draw|circle|rect|line|triangle|color|clear|sleep|help")) return Token.Type.KEYWORD;
         if (val.matches("\\d+")) return Token.Type.LITERAL;
         if (val.matches("\".*\"")) return Token.Type.LITERAL;
         if (val.matches("[a-zA-Z][a-zA-Z0-9]*")) return Token.Type.ID;
