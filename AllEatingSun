@@ -1,0 +1,27 @@
+x = 0
+
+
+# Start Loop
+while x < 500 {
+  clear
+  color(0, 0, 255)
+  circle(x, 200, 30)
+  color(0, 0, 80)
+  circle(x, 200, 25)
+  color(255, 0, 0)
+  circle(-(x), 200, 30)
+  color(255, 100, 0)
+  circle(-(x), 200, 20)
+  # Update position
+  x = x + 10
+  
+  # Wait for 50ms so eyes can see it
+  sleep(100)
+}
+
+### Supported Shapes
+1.  **`circle(x, y, radius)`**: Draws a filled circle.
+2.  **`rect(x, y, width, height)`**: Draws a filled rectangle.
+3.  **`line(x1, y1, x2, y2)`**: Draws a line between two points.
+
+You can verify these commands at any time by running the command `help`.
