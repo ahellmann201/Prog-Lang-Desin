@@ -8,7 +8,7 @@ import javax.swing.SwingUtilities;
 
 /**
  * The Logic Engine.
- * Supports: Variables, Math, Graphics, Animation (Sleep), Loops (While).
+ * Updated with IF/ELSE and TRIANGLE support.
  */
 public class Interpreter {
     
@@ -25,17 +25,13 @@ public class Interpreter {
     }
 
     public void execute(String sourceCode) {
-        // Run logic in a separate thread to prevent UI freezing
         new Thread(() -> {
             try {
-                // Clear memory only at the start of execution
                 variables.clear();
                 List<Token> tokens = lexer.tokenize(sourceCode);
-                
                 printSafe("--- Starting Execution ---");
                 parse(tokens);
                 printSafe("\n--- Execution Finished ---");
-                
             } catch (Exception e) {
                 printSafe("RUNTIME ERROR: " + e.getMessage());
                 e.printStackTrace();
@@ -43,7 +39,6 @@ public class Interpreter {
         }).start();
     }
 
-    // Helper to print safely from background thread
     private void printSafe(String msg) {
         SwingUtilities.invokeLater(() -> outputWindow.printToConsole(msg));
     }
@@ -55,32 +50,50 @@ public class Interpreter {
         while (i < tokens.size()) {
             Token t = tokens.get(i);
 
-            // --- WHILE LOOP ---
-            if (t.value.equals("while")) {
-                int conditionIdx = i + 1;
-                if (conditionIdx + 2 >= tokens.size()) break;
-
-                String varName = tokens.get(conditionIdx).value;
-                String op = tokens.get(conditionIdx+1).value;
-                String targetStr = resolveValue(tokens.get(conditionIdx+2));
-                int target = Integer.parseInt(targetStr);
-                int current = variables.getOrDefault(varName, 0);
+            // --- IF / ELSE ---
+            if (t.value.equals("if")) {
+                int result = evaluateCondition(tokens, i + 1); // Returns 1 (true) or 0 (false) or -1 (error)
+                i += 4; // Skip if, var, op, target
                 
-                boolean isTrue = false;
-                if (op.equals("<")) isTrue = current < target;
-                if (op.equals(">")) isTrue = current > target;
-                if (op.equals("==")) isTrue = current == target;
-                if (op.equals("!=")) isTrue = current != target;
-
-                if (!isTrue) {
+                if (check(tokens, i, "{")) i++; // Enter block
+                
+                if (result == 1) {
+                    // Condition TRUE: Continue normally inside the block
+                } else {
+                    // Condition FALSE: Skip the IF block
                     i = findMatchingBrace(tokens, i);
+                    
+                    // Check for ELSE
+                    if (i < tokens.size() && tokens.get(i).value.equals("else")) {
+                        i++; // Skip 'else'
+                        if (check(tokens, i, "{")) i++;
+                        // Enter ELSE block
+                    }
+                }
+            }
+            // --- ELSE (Skipping) ---
+            else if (t.value.equals("else")) {
+                // If we encounter 'else' here, it means we just finished a TRUE if-block.
+                // So we must SKIP the else block.
+                i++; // Skip 'else'
+                if (check(tokens, i, "{")) {
+                    i++; // Enter block just to find the end
+                    i = findMatchingBrace(tokens, i);
+                }
+            }
+            // --- WHILE LOOP ---
+            else if (t.value.equals("while")) {
+                int result = evaluateCondition(tokens, i + 1);
+                
+                if (result == 0) {
+                    i = findMatchingBrace(tokens, i + 1 + 3); // Skip logic
                 } else {
                     whileStack.push(i); 
                     i += 4; // skip while, var, op, target
                     if (check(tokens, i, "{")) i++;
                 }
             }
-            // --- END OF LOOP ---
+            // --- END OF BLOCK ---
             else if (t.value.equals("}")) {
                 if (!whileStack.isEmpty()) {
                     i = whileStack.pop(); 
@@ -92,15 +105,12 @@ public class Interpreter {
             else if (t.type == Token.Type.KEYWORD) {
                 switch (t.value) {
                     case "print": i = handlePrint(tokens, i); break;
-                    case "clear": 
-                        graphicsFrame.clear(); 
-                        i++; 
-                        if(check(tokens,i,";")) i++;
-                        break;
+                    case "clear": graphicsFrame.clear(); i++; if(check(tokens,i,";")) i++; break;
                     case "color": i = handleColor(tokens, i); break;
                     case "circle": i = handleCircle(tokens, i); break;
                     case "rect": i = handleRect(tokens, i); break;
                     case "line": i = handleLine(tokens, i); break;
+                    case "triangle": i = handleTriangle(tokens, i); break; // NEW
                     case "sleep": i = handleSleep(tokens, i); break;
                     case "help": printHelp(); i++; break;
                     default: i++; break;
@@ -114,6 +124,21 @@ public class Interpreter {
                 i++;
             }
         }
+    }
+
+    // Helper to evaluate "var op target"
+    private int evaluateCondition(List<Token> tokens, int startIdx) {
+        if (startIdx + 2 >= tokens.size()) return -1;
+        String varName = tokens.get(startIdx).value;
+        String op = tokens.get(startIdx+1).value;
+        int target = Integer.parseInt(resolveValue(tokens.get(startIdx+2)));
+        int current = variables.getOrDefault(varName, 0);
+        
+        if (op.equals("<")) return (current < target) ? 1 : 0;
+        if (op.equals(">")) return (current > target) ? 1 : 0;
+        if (op.equals("==")) return (current == target) ? 1 : 0;
+        if (op.equals("!=")) return (current != target) ? 1 : 0;
+        return 0;
     }
 
     private int findMatchingBrace(List<Token> tokens, int start) {
@@ -130,31 +155,45 @@ public class Interpreter {
 
     private int handleAssignment(List<Token> tokens, int i) {
         String varName = tokens.get(i).value;
-        i += 2; // skip var and =
-
-        // Check if next part is an expression (e.g., x + 10)
+        i += 2; 
         int exprLen = 1; 
         if (i + 1 < tokens.size()) {
              String nextVal = tokens.get(i+1).value;
-             if (nextVal.matches("[+\\-*/]")) {
-                 exprLen = 3; // A op B
-             }
+             if (nextVal.matches("[+\\-*/]")) exprLen = 3; 
         }
-
         int val = evaluateExpression(tokens, i);
         variables.put(varName, val);
-        
         i += exprLen;
         if (i < tokens.size() && tokens.get(i).value.equals(";")) i++;
         return i;
     }
     
     private int handleSleep(List<Token> tokens, int i) {
-        i++; 
-        if (check(tokens, i, "(")) i++;
+        i++; if (check(tokens, i, "(")) i++;
         int ms = Integer.parseInt(resolveValue(tokens.get(i++)));
         if (check(tokens, i, ")")) i++;
-        try { Thread.sleep(ms); } catch (InterruptedException e) {}
+        try { 
+            // Refresh graphics before sleeping to ensure frame is visible
+            graphicsFrame.refresh(); 
+            Thread.sleep(ms); 
+        } catch (InterruptedException e) {}
+        if(check(tokens,i,";")) i++;
+        return i;
+    }
+
+    // --- Graphics Handlers ---
+    private int handleTriangle(List<Token> tokens, int i) {
+        i++; if (check(tokens, i, "(")) i++;
+        int x1 = Integer.parseInt(resolveValue(tokens.get(i++))); if (check(tokens, i, ",")) i++;
+        int y1 = Integer.parseInt(resolveValue(tokens.get(i++))); if (check(tokens, i, ",")) i++;
+        int x2 = Integer.parseInt(resolveValue(tokens.get(i++))); if (check(tokens, i, ",")) i++;
+        int y2 = Integer.parseInt(resolveValue(tokens.get(i++))); if (check(tokens, i, ",")) i++;
+        int x3 = Integer.parseInt(resolveValue(tokens.get(i++))); if (check(tokens, i, ",")) i++;
+        int y3 = Integer.parseInt(resolveValue(tokens.get(i++))); if (check(tokens, i, ")")) i++;
+        
+        graphicsFrame.setVisible(true);
+        graphicsFrame.addTriangle(x1, y1, x2, y2, x3, y3);
+        
         if(check(tokens,i,";")) i++;
         return i;
     }
@@ -220,21 +259,10 @@ public class Interpreter {
 
     private void printHelp() {
         String help = 
-            "--- HELP & COMMAND REFERENCE ---\n" +
-            "SHAPES:\n" +
-            "  circle(x, y, radius)\n" +
-            "  rect(x, y, width, height)\n" +
-            "  line(x1, y1, x2, y2)\n" +
-            "  color(r, g, b)  - Set RGB color (0-255)\n" +
-            "  clear           - Clear screen\n\n" +
-            "ANIMATION:\n" +
-            "  sleep(ms)       - Pause execution (e.g., sleep(100))\n\n" +
-            "LOGIC:\n" +
-            "  print(x)        - Print variable or number\n" +
-            "  x = 10          - Assign variable\n" +
-            "  while x < 10 {  - Loop block\n" +
-            "     x = x + 1\n" +
-            "  }\n";
+            "--- HELP ---\n" +
+            "SHAPES: circle(x,y,r), rect(x,y,w,h), line(x1,y1,x2,y2), triangle(x1,y1,x2,y2,x3,y3)\n" +
+            "LOGIC:  if x < 10 { } else { }, while x < 10 { }\n" +
+            "ANIMATION: clear, sleep(ms)\n";
         printSafe(help);
     }
 
