@@ -2,7 +2,7 @@ package finalProject;
 
 /**
  * Represents a single token in the language.
- * Assignment 5: Encoding Tokens.
+ * Updated with encodings for Math and Logic
  */
 public class Token {
     
@@ -28,8 +28,13 @@ public class Token {
                 if (val.equals("print")) return 153;
                 if (val.equals("if")) return 100;
                 if (val.equals("while")) return 101;
-                if (val.equals("else")) return 102; // NEW
+                if (val.equals("else")) return 102;
                 
+                // Logic
+                if (val.equals("and")) return 110;
+                if (val.equals("or")) return 111;
+                if (val.equals("not")) return 112;
+
                 // Graphics
                 if (val.equals("circle")) return 160;
                 if (val.equals("rect")) return 161;
@@ -38,15 +43,26 @@ public class Token {
                 if (val.equals("sleep")) return 164;
                 if (val.equals("line")) return 165;
                 if (val.equals("help")) return 166;
-                if (val.equals("triangle")) return 167; // NEW
+                if (val.equals("triangle")) return 167;
+                
+                // Anim
+                if (val.equals("anim")) return 180;
+                if (val.equals("run")) return 181;
+                
                 return 199;
             case OPERATOR:
                 if (val.equals("=")) return 220;
                 if (val.equals("+")) return 248;
-                if (val.equals("==")) return 249;
-                if (val.equals("<")) return 250;
-                if (val.equals(">")) return 251;
-                if (val.equals("!=")) return 252;
+                if (val.equals("-")) return 249;
+                if (val.equals("*")) return 250; 
+                if (val.equals("/")) return 251; 
+                
+                if (val.equals("==")) return 260;
+                if (val.equals("<")) return 261;
+                if (val.equals(">")) return 262;
+                if (val.equals("!=")) return 263;
+                if (val.equals("<=")) return 264;
+                if (val.equals(">=")) return 265;
                 return 200;
             case ID: return 300; 
             case LITERAL: return 700; 

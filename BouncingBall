@@ -1,0 +1,44 @@
+x = 50
+y = 250
+vx = 5
+vy = 5
+timer = 0
+
+while timer < 500 {
+  clear
+  
+  # Draw Box Border
+  color(0, 0, 0)
+  rect(0, 0, 500, 500)
+  
+  # Draw Ball
+  color(255, 0, 0)
+  circle(x, y, 20)
+  
+  # Move
+  x = x + vx
+  y = y + vy
+  
+  # Bounce X (Right Wall)
+  if x > 480 {
+     vx = 0 - 5
+  }
+  # Bounce X (Left Wall)
+  if x < 20 {
+     vx = 5
+  }
+
+  # Bounce Y (Bottom Wall)
+  if y > 480 {
+     vy = 0 - 5
+  }
+  # Bounce Y (Top Wall)
+  if y < 20 {
+     vy = 5
+  }
+  
+  timer = timer + 1
+  
+  # Sleep triggers the Repaint
+  sleep(20)
+}

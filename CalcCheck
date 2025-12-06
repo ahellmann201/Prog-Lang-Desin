@@ -1,0 +1,18 @@
+# PEMDAS Check: 10 + 5 * 4 should be 30 (not 60)
+val = 10 + 5 * 4
+print("10 + 5 * 4 = ")
+print(val)
+
+# Complex Logic Check
+a = 100
+b = 50
+
+if val == 30 and a > 50 {
+   print("Logic: PASSED (And)")
+} else {
+   print("Logic: FAILED")
+}
+
+if a > 200 or b == 50 {
+   print("Logic: PASSED (Or)")
+}

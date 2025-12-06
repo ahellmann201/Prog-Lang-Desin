@@ -1,0 +1,23 @@
+clear
+
+# Sky (Light Blue)
+color(135, 206, 235)
+rect(0, 0, 500, 300)
+
+# Grass (Green)
+color(34, 139, 34)
+rect(0, 300, 500, 200)
+
+# Sun (Yellow)
+color(255, 255, 0)
+circle(400, 80, 40)
+
+# House Body (Red)
+color(200, 0, 0)
+rect(100, 250, 100, 100)
+
+# Roof (Black Triangle)
+color(0, 0, 0)
+triangle(100, 250, 200, 250, 150, 200)
+
+print("Landscape Drawn.")

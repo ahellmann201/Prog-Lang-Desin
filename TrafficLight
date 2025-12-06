@@ -1,0 +1,39 @@
+# Define Red Light State
+anim Red {
+   # Gray box
+   color(100, 100, 100)
+   rect(150, 50, 100, 300)
+   
+   # Lights
+   color(255, 0, 0)
+   circle(200, 120, 30)
+   color(50, 0, 0)
+   circle(200, 200, 30)
+   circle(200, 280, 30)
+   
+   sleep(500)
+}
+
+# Define Green Light State
+anim Green {
+   # Gray box
+   color(100, 100, 100)
+   rect(150, 50, 100, 300)
+   
+   # Lights
+   color(50, 0, 0)
+   circle(200, 120, 30)
+   circle(200, 200, 30)
+   color(0, 255, 0)
+   circle(200, 280, 30)
+   
+   sleep(500)
+}
+
+count = 0
+while count < 5 {
+   # The screen should flicker cleanly between these two states
+   run Red
+   run Green
+   count = count + 1
+}
