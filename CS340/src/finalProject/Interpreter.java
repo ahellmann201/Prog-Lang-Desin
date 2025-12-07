@@ -1,26 +1,31 @@
 package finalProject;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 import javax.swing.SwingUtilities;
 
-/**
- * The Logic Engine.
- * Updated with IF/ELSE and TRIANGLE support.
- */
 public class Interpreter {
     
     private IDEWindow outputWindow;
     private GraphicsFrame graphicsFrame;
     private Lexer lexer;
     private Map<String, Integer> variables; 
+    private Map<String, List<Token>> functions;
+    
+    // Flag to track if the program has attempted to draw anything
+    private boolean graphicsStarted = false;
+
+    // Parser State Helpers
+    private int currentTokenIndex;
 
     public Interpreter(IDEWindow outputWindow) {
         this.outputWindow = outputWindow;
         this.lexer = new Lexer();
         this.variables = new HashMap<>();
+        this.functions = new HashMap<>();
         this.graphicsFrame = new GraphicsFrame();
     }
 
@@ -28,9 +33,20 @@ public class Interpreter {
         new Thread(() -> {
             try {
                 variables.clear();
+                functions.clear();
+                graphicsStarted = false; 
+                
+                // Reset graphics state but DO NOT force visible
+                graphicsFrame.reset();
+                
                 List<Token> tokens = lexer.tokenize(sourceCode);
                 printSafe("--- Starting Execution ---");
+                
                 parse(tokens);
+                
+                // Force final redraw for static images
+                graphicsFrame.refresh(); 
+                
                 printSafe("\n--- Execution Finished ---");
             } catch (Exception e) {
                 printSafe("RUNTIME ERROR: " + e.getMessage());
@@ -45,58 +61,131 @@ public class Interpreter {
 
     private void parse(List<Token> tokens) {
         Stack<Integer> whileStack = new Stack<>();
+        Stack<String> blockStack = new Stack<>(); 
         
         int i = 0;
         while (i < tokens.size()) {
+            
+            // Stop execution if user closed the graphics window
+            if (graphicsStarted && !graphicsFrame.isOpen()) {
+                printSafe("\nProgram Stopped: Graphics Window Closed.");
+                break;
+            }
+
             Token t = tokens.get(i);
 
-            // --- IF / ELSE ---
-            if (t.value.equals("if")) {
-                int result = evaluateCondition(tokens, i + 1); // Returns 1 (true) or 0 (false) or -1 (error)
-                i += 4; // Skip if, var, op, target
-                
-                if (check(tokens, i, "{")) i++; // Enter block
-                
-                if (result == 1) {
-                    // Condition TRUE: Continue normally inside the block
-                } else {
-                    // Condition FALSE: Skip the IF block
-                    i = findMatchingBrace(tokens, i);
-                    
-                    // Check for ELSE
-                    if (i < tokens.size() && tokens.get(i).value.equals("else")) {
-                        i++; // Skip 'else'
-                        if (check(tokens, i, "{")) i++;
-                        // Enter ELSE block
+            // --- ANIMATIONS ---
+            if (t.value.equals("anim")) {
+                i++; 
+                if (i < tokens.size()) {
+                    String funcName = tokens.get(i++).value;
+                    if (check(tokens, i, "{")) {
+                        i++; 
+                        List<Token> bodyTokens = new ArrayList<>();
+                        int braces = 1;
+                        while (braces > 0 && i < tokens.size()) {
+                            Token bodyT = tokens.get(i);
+                            if (bodyT.value.equals("{")) braces++;
+                            if (bodyT.value.equals("}")) braces--;
+                            if (braces > 0) bodyTokens.add(bodyT);
+                            i++;
+                        }
+                        functions.put(funcName, bodyTokens);
+                        printSafe("Defined Animation: " + funcName);
                     }
                 }
             }
-            // --- ELSE (Skipping) ---
-            else if (t.value.equals("else")) {
-                // If we encounter 'else' here, it means we just finished a TRUE if-block.
-                // So we must SKIP the else block.
-                i++; // Skip 'else'
-                if (check(tokens, i, "{")) {
-                    i++; // Enter block just to find the end
-                    i = findMatchingBrace(tokens, i);
+            else if (t.value.equals("run")) {
+                i++; 
+                if (i < tokens.size()) {
+                    String funcName = tokens.get(i++).value;
+                    if (check(tokens, i, "(")) i++; if (check(tokens, i, ")")) i++;
+                    if (functions.containsKey(funcName)) parse(functions.get(funcName));
+                    else printSafe("Error: Animation '" + funcName + "' not defined.");
+                    if (check(tokens, i, ";")) i++;
                 }
             }
-            // --- WHILE LOOP ---
-            else if (t.value.equals("while")) {
-                int result = evaluateCondition(tokens, i + 1);
+            // --- IF / ELSE ---
+            else if (t.value.equals("if")) {
+                i++; 
+                List<Token> conditionTokens = extractExpressionTokens(tokens, i, "{");
+                i += conditionTokens.size();
                 
-                if (result == 0) {
-                    i = findMatchingBrace(tokens, i + 1 + 3); // Skip logic
+                boolean result = evaluateLogic(conditionTokens);
+                
+                if (check(tokens, i, "{")) {
+                    i++; 
+                    if (result) {
+                        blockStack.push("IF"); 
+                    } else {
+                        // Skip block
+                        int braces = 1;
+                        while (braces > 0 && i < tokens.size()) {
+                            if (tokens.get(i).value.equals("{")) braces++;
+                            if (tokens.get(i).value.equals("}")) braces--;
+                            if (braces > 0) i++;
+                        }
+                        i++; 
+                        
+                        // Check for ELSE
+                        if (i < tokens.size() && tokens.get(i).value.equals("else")) {
+                            i++; 
+                            if (check(tokens, i, "{")) {
+                                i++;
+                                blockStack.push("ELSE"); 
+                            }
+                        }
+                    }
+                }
+            }
+            else if (t.value.equals("else")) {
+                i++; 
+                if (check(tokens, i, "{")) {
+                    i++; 
+                    int braces = 1;
+                    while (braces > 0 && i < tokens.size()) {
+                        if (tokens.get(i).value.equals("{")) braces++;
+                        if (tokens.get(i).value.equals("}")) braces--;
+                        if (braces > 0) i++;
+                    }
+                    i++;
+                }
+            }
+            // --- WHILE ---
+            else if (t.value.equals("while")) {
+                List<Token> conditionTokens = extractExpressionTokens(tokens, i + 1, "{");
+                boolean result = evaluateLogic(conditionTokens);
+                
+                if (!result) {
+                    i += 1 + conditionTokens.size();
+                    if (check(tokens, i, "{")) {
+                        i++; 
+                        int braces = 1;
+                        while (braces > 0 && i < tokens.size()) {
+                            if (tokens.get(i).value.equals("{")) braces++;
+                            if (tokens.get(i).value.equals("}")) braces--;
+                            if (braces > 0) i++;
+                        }
+                        i++;
+                    }
                 } else {
                     whileStack.push(i); 
-                    i += 4; // skip while, var, op, target
-                    if (check(tokens, i, "{")) i++;
+                    i += 1 + conditionTokens.size(); 
+                    if (check(tokens, i, "{")) {
+                        i++;
+                        blockStack.push("WHILE"); 
+                    }
                 }
             }
-            // --- END OF BLOCK ---
+            // --- CLOSING BRACE } ---
             else if (t.value.equals("}")) {
-                if (!whileStack.isEmpty()) {
-                    i = whileStack.pop(); 
+                if (!blockStack.isEmpty()) {
+                    String type = blockStack.pop();
+                    if (type.equals("WHILE")) {
+                        if (!whileStack.isEmpty()) i = whileStack.pop(); 
+                    } else {
+                        i++;
+                    }
                 } else {
                     i++;
                 }
@@ -110,7 +199,7 @@ public class Interpreter {
                     case "circle": i = handleCircle(tokens, i); break;
                     case "rect": i = handleRect(tokens, i); break;
                     case "line": i = handleLine(tokens, i); break;
-                    case "triangle": i = handleTriangle(tokens, i); break; // NEW
+                    case "triangle": i = handleTriangle(tokens, i); break;
                     case "sleep": i = handleSleep(tokens, i); break;
                     case "help": printHelp(); i++; break;
                     default: i++; break;
@@ -118,7 +207,13 @@ public class Interpreter {
             }
             // --- ASSIGNMENT ---
             else if (t.type == Token.Type.ID && check(tokens, i+1, "=")) {
-                i = handleAssignment(tokens, i);
+                String varName = t.value;
+                i += 2; 
+                List<Token> mathTokens = extractExpressionTokens(tokens, i, ";");
+                int val = evaluateMath(mathTokens);
+                variables.put(varName, val);
+                i += mathTokens.size();
+                if (check(tokens, i, ";")) i++;
             } 
             else {
                 i++;
@@ -126,148 +221,182 @@ public class Interpreter {
         }
     }
 
-    // Helper to evaluate "var op target"
-    private int evaluateCondition(List<Token> tokens, int startIdx) {
-        if (startIdx + 2 >= tokens.size()) return -1;
-        String varName = tokens.get(startIdx).value;
-        String op = tokens.get(startIdx+1).value;
-        int target = Integer.parseInt(resolveValue(tokens.get(startIdx+2)));
-        int current = variables.getOrDefault(varName, 0);
-        
-        if (op.equals("<")) return (current < target) ? 1 : 0;
-        if (op.equals(">")) return (current > target) ? 1 : 0;
-        if (op.equals("==")) return (current == target) ? 1 : 0;
-        if (op.equals("!=")) return (current != target) ? 1 : 0;
-        return 0;
-    }
-
-    private int findMatchingBrace(List<Token> tokens, int start) {
-        int braces = 0;
-        for(int k=start; k<tokens.size(); k++) {
-            if(tokens.get(k).value.equals("{")) braces++;
-            if(tokens.get(k).value.equals("}")) {
-                braces--;
-                if(braces == 0) return k + 1;
-            }
-        }
-        return tokens.size(); 
-    }
-
-    private int handleAssignment(List<Token> tokens, int i) {
-        String varName = tokens.get(i).value;
-        i += 2; 
-        int exprLen = 1; 
-        if (i + 1 < tokens.size()) {
-             String nextVal = tokens.get(i+1).value;
-             if (nextVal.matches("[+\\-*/]")) exprLen = 3; 
-        }
-        int val = evaluateExpression(tokens, i);
-        variables.put(varName, val);
-        i += exprLen;
-        if (i < tokens.size() && tokens.get(i).value.equals(";")) i++;
-        return i;
-    }
-    
-    private int handleSleep(List<Token> tokens, int i) {
-        i++; if (check(tokens, i, "(")) i++;
-        int ms = Integer.parseInt(resolveValue(tokens.get(i++)));
-        if (check(tokens, i, ")")) i++;
-        try { 
-            // Refresh graphics before sleeping to ensure frame is visible
-            graphicsFrame.refresh(); 
-            Thread.sleep(ms); 
-        } catch (InterruptedException e) {}
-        if(check(tokens,i,";")) i++;
-        return i;
-    }
-
-    // --- Graphics Handlers ---
-    private int handleTriangle(List<Token> tokens, int i) {
-        i++; if (check(tokens, i, "(")) i++;
-        int x1 = Integer.parseInt(resolveValue(tokens.get(i++))); if (check(tokens, i, ",")) i++;
-        int y1 = Integer.parseInt(resolveValue(tokens.get(i++))); if (check(tokens, i, ",")) i++;
-        int x2 = Integer.parseInt(resolveValue(tokens.get(i++))); if (check(tokens, i, ",")) i++;
-        int y2 = Integer.parseInt(resolveValue(tokens.get(i++))); if (check(tokens, i, ",")) i++;
-        int x3 = Integer.parseInt(resolveValue(tokens.get(i++))); if (check(tokens, i, ",")) i++;
-        int y3 = Integer.parseInt(resolveValue(tokens.get(i++))); if (check(tokens, i, ")")) i++;
-        
-        graphicsFrame.setVisible(true);
-        graphicsFrame.addTriangle(x1, y1, x2, y2, x3, y3);
-        
-        if(check(tokens,i,";")) i++;
-        return i;
-    }
-
-    private int handleLine(List<Token> tokens, int i) {
-        i++; if (check(tokens, i, "(")) i++;
-        int x1 = Integer.parseInt(resolveValue(tokens.get(i++))); if (check(tokens, i, ",")) i++;
-        int y1 = Integer.parseInt(resolveValue(tokens.get(i++))); if (check(tokens, i, ",")) i++;
-        int x2 = Integer.parseInt(resolveValue(tokens.get(i++))); if (check(tokens, i, ",")) i++;
-        int y2 = Integer.parseInt(resolveValue(tokens.get(i++))); if (check(tokens, i, ")")) i++;
-        graphicsFrame.setVisible(true);
-        graphicsFrame.addLine(x1, y1, x2, y2);
-        if(check(tokens,i,";")) i++;
-        return i;
-    }
-
-    private int handleCircle(List<Token> tokens, int i) {
-        i++; if(check(tokens,i,"(")) i++;
-        int x = Integer.parseInt(resolveValue(tokens.get(i++))); if(check(tokens,i,",")) i++;
-        int y = Integer.parseInt(resolveValue(tokens.get(i++))); if(check(tokens,i,",")) i++;
-        int r = Integer.parseInt(resolveValue(tokens.get(i++))); if(check(tokens,i,")")) i++;
-        graphicsFrame.setVisible(true);
-        graphicsFrame.addCircle(x, y, r);
-        if(check(tokens,i,";")) i++;
-        return i;
-    }
-
-    private int handleRect(List<Token> tokens, int i) {
-        i++; if(check(tokens,i,"(")) i++;
-        int x = Integer.parseInt(resolveValue(tokens.get(i++))); if(check(tokens,i,",")) i++;
-        int y = Integer.parseInt(resolveValue(tokens.get(i++))); if(check(tokens,i,",")) i++;
-        int w = Integer.parseInt(resolveValue(tokens.get(i++))); if(check(tokens,i,",")) i++;
-        int h = Integer.parseInt(resolveValue(tokens.get(i++))); if(check(tokens,i,")")) i++;
-        graphicsFrame.setVisible(true);
-        graphicsFrame.addRect(x, y, w, h);
-        if(check(tokens,i,";")) i++;
-        return i;
-    }
-
-    private int handleColor(List<Token> tokens, int i) {
-        i++; if(check(tokens,i,"(")) i++;
-        int r = Integer.parseInt(resolveValue(tokens.get(i++))); if(check(tokens,i,",")) i++;
-        int g = Integer.parseInt(resolveValue(tokens.get(i++))); if(check(tokens,i,",")) i++;
-        int b = Integer.parseInt(resolveValue(tokens.get(i++))); if(check(tokens,i,")")) i++;
-        graphicsFrame.setCurrentColor(r, g, b);
-        if(check(tokens,i,";")) i++;
-        return i;
-    }
-
-    private int handlePrint(List<Token> tokens, int i) {
-        i++;
-        if (i < tokens.size() && tokens.get(i).value.equals("(")) {
-            i++; 
-            Token content = tokens.get(i);
-            String result = resolveValue(content);
-            printSafe("> " + result);
-            i++; 
-            if (i < tokens.size() && tokens.get(i).value.equals(")")) i++;
-            if (i < tokens.size() && tokens.get(i).value.equals(";")) i++;
-        }
-        return i;
-    }
+    // --- HELP / DOCUMENTATION ---
 
     private void printHelp() {
         String help = 
-            "--- HELP ---\n" +
-            "SHAPES: circle(x,y,r), rect(x,y,w,h), line(x1,y1,x2,y2), triangle(x1,y1,x2,y2,x3,y3)\n" +
-            "LOGIC:  if x < 10 { } else { }, while x < 10 { }\n" +
-            "ANIMATION: clear, sleep(ms)\n";
+            "\n========== LANGUAGE REFERENCE ==========\n\n" +
+            "1. VARIABLES & MATH\n" +
+            "   x = 10\n" +
+            "   y = x + 5 * (20 / 2)\n" +
+            "   Supported: + - * / ( ) (PEMDAS rules apply)\n\n" +
+            
+            "2. LOGIC & CONTROL FLOW\n" +
+            "   if x < 10 and y > 5 { ... } else { ... }\n" +
+            "   while x < 100 { ... }\n" +
+            "   Ops: <, >, <=, >=, ==, !=, and, or, not\n\n" +
+            
+            "3. GRAPHICS COMMANDS\n" +
+            "   color(r, g, b)    : Set RGB color (0-255)\n" +
+            "   circle(x, y, r)   : Draw circle at (x,y) with radius r\n" +
+            "   rect(x, y, w, h)  : Draw rectangle at (x,y)\n" +
+            "   line(x1,y1,x2,y2) : Draw line from p1 to p2\n" +
+            "   triangle(x1,y1, x2,y2, x3,y3) : Draw triangle\n" +
+            "   clear             : Clear screen\n\n" +
+            
+            "4. ANIMATION & FUNCTIONS\n" +
+            "   anim Name { ... } : Define a reusable block/frame\n" +
+            "   run Name          : Execute the animation block\n" +
+            "   sleep(ms)         : Pause execution (updates screen)\n\n" +
+            
+            "5. SYSTEM\n" +
+            "   print(value)      : Print number or string to console\n" +
+            "   help              : Show this menu\n" +
+            "========================================\n";
         printSafe(help);
     }
 
-    private boolean check(List<Token> tokens, int i, String val) {
-        return i < tokens.size() && tokens.get(i).value.equals(val);
+    // --- LOGIC, MATH, and HELPERS ---
+
+    private boolean evaluateLogic(List<Token> tokens) {
+        if (tokens.isEmpty()) return false;
+        currentTokenIndex = 0;
+        return parseLogicOr(tokens);
+    }
+
+    private boolean parseLogicOr(List<Token> tokens) {
+        boolean left = parseLogicAnd(tokens);
+        while (currentTokenIndex < tokens.size() && tokens.get(currentTokenIndex).value.equals("or")) {
+            currentTokenIndex++;
+            boolean right = parseLogicAnd(tokens);
+            left = left || right;
+        }
+        return left;
+    }
+
+    private boolean parseLogicAnd(List<Token> tokens) {
+        boolean left = parseLogicNot(tokens);
+        while (currentTokenIndex < tokens.size() && tokens.get(currentTokenIndex).value.equals("and")) {
+            currentTokenIndex++;
+            boolean right = parseLogicNot(tokens);
+            left = left && right;
+        }
+        return left;
+    }
+    
+    private boolean parseLogicNot(List<Token> tokens) {
+        if (currentTokenIndex < tokens.size() && tokens.get(currentTokenIndex).value.equals("not")) {
+            currentTokenIndex++;
+            return !parseLogicNot(tokens);
+        }
+        return parseComparison(tokens);
+    }
+
+    private boolean parseComparison(List<Token> tokens) {
+        int start = currentTokenIndex;
+        int end = start;
+        int paren = 0;
+        while(end < tokens.size()) {
+            String v = tokens.get(end).value;
+            if (v.equals("(")) paren++;
+            else if (v.equals(")")) { if (paren > 0) paren--; else break; }
+            else if (paren == 0 && (v.equals("and") || v.equals("or"))) break;
+            end++;
+        }
+        List<Token> sub = tokens.subList(start, end);
+        currentTokenIndex = end; 
+        
+        int opIndex = -1; String op = ""; int p = 0;
+        for(int k=0; k<sub.size(); k++) {
+            String v = sub.get(k).value;
+            if(v.equals("(")) p++; else if(v.equals(")")) p--;
+            else if (p == 0 && v.matches("==|!=|<=|>=|<|>")) { opIndex = k; op = v; break; }
+        }
+
+        if (opIndex != -1) {
+            int leftVal = evaluateMath(sub.subList(0, opIndex));
+            int rightVal = evaluateMath(sub.subList(opIndex + 1, sub.size()));
+            switch(op) {
+                case "<": return leftVal < rightVal;
+                case ">": return leftVal > rightVal;
+                case "<=": return leftVal <= rightVal;
+                case ">=": return leftVal >= rightVal;
+                case "==": return leftVal == rightVal;
+                case "!=": return leftVal != rightVal;
+            }
+        }
+        if (sub.size() > 0 && sub.get(0).value.equals("(")) return evaluateMath(sub) != 0;
+        return evaluateMath(sub) != 0;
+    }
+
+    private int evaluateMath(List<Token> tokens) {
+        if (tokens.isEmpty()) return 0;
+        return parseExpression(tokens, new int[]{0});
+    }
+
+    private int parseExpression(List<Token> tokens, int[] idx) {
+        int left = parseTerm(tokens, idx);
+        while (idx[0] < tokens.size()) {
+            String op = tokens.get(idx[0]).value;
+            if (!op.equals("+") && !op.equals("-")) break;
+            idx[0]++;
+            int right = parseTerm(tokens, idx);
+            if (op.equals("+")) left += right; else left -= right;
+        }
+        return left;
+    }
+
+    private int parseTerm(List<Token> tokens, int[] idx) {
+        int left = parseFactor(tokens, idx);
+        while (idx[0] < tokens.size()) {
+            String op = tokens.get(idx[0]).value;
+            if (!op.equals("*") && !op.equals("/")) break;
+            idx[0]++;
+            int right = parseFactor(tokens, idx);
+            if (op.equals("*")) left *= right; else if (right != 0) left /= right;
+        }
+        return left;
+    }
+
+    private int parseFactor(List<Token> tokens, int[] idx) {
+        if (idx[0] >= tokens.size()) return 0;
+        Token t = tokens.get(idx[0]);
+        idx[0]++;
+        if (t.type == Token.Type.LITERAL) {
+             if (t.value.startsWith("\"")) return 0;
+             return Integer.parseInt(t.value.replace("\"", ""));
+        }
+        if (t.type == Token.Type.ID) return variables.getOrDefault(t.value, 0);
+        if (t.value.equals("(")) {
+            int val = parseExpression(tokens, idx);
+            if (idx[0] < tokens.size() && tokens.get(idx[0]).value.equals(")")) idx[0]++;
+            return val;
+        }
+        return 0;
+    }
+
+    private List<Token> extractExpressionTokens(List<Token> allTokens, int start, String delimiter) {
+        List<Token> subset = new ArrayList<>();
+        int i = start;
+        int parens = 0;
+        while (i < allTokens.size()) {
+            Token t = allTokens.get(i);
+            if (t.value.equals(")") && parens == 0) break;
+            if (t.value.equals("(")) parens++; else if (t.value.equals(")")) parens--;
+            
+            if (parens == 0) {
+                if (t.value.equals(delimiter)) break;
+                if (t.value.equals("{") || t.value.equals("}")) break;
+                if (t.type == Token.Type.KEYWORD) {
+                    String v = t.value;
+                    if (v.matches("print|if|while|else|anim|run|sleep|clear|color|circle|rect|line|triangle|help")) break;
+                }
+                if (t.type == Token.Type.ID && i + 1 < allTokens.size() && allTokens.get(i+1).value.equals("=")) break;
+            }
+            subset.add(t);
+            i++;
+        }
+        return subset;
     }
 
     private String resolveValue(Token t) {
@@ -276,19 +405,60 @@ public class Interpreter {
         return "0";
     }
 
-    private int evaluateExpression(List<Token> tokens, int currentIndex) {
-        Token op1 = tokens.get(currentIndex);
-        int val1 = Integer.parseInt(resolveValue(op1));
-        if (currentIndex + 1 < tokens.size()) {
-            Token op = tokens.get(currentIndex + 1);
-            if (op.value.equals("+")) return val1 + Integer.parseInt(resolveValue(tokens.get(currentIndex + 2)));
-            if (op.value.equals("-")) return val1 - Integer.parseInt(resolveValue(tokens.get(currentIndex + 2)));
-            if (op.value.equals("*")) return val1 * Integer.parseInt(resolveValue(tokens.get(currentIndex + 2)));
-            if (op.value.equals("/")) {
-                 int val2 = Integer.parseInt(resolveValue(tokens.get(currentIndex + 2)));
-                 return val2 != 0 ? val1 / val2 : 0;
-            }
+    private boolean check(List<Token> tokens, int i, String val) {
+        return i < tokens.size() && tokens.get(i).value.equals(val);
+    }
+    
+    // -- GRAPHICS HANDLERS --
+    private int handleSleep(List<Token> tokens, int i) {
+        i++; if(check(tokens,i,"(")) i++;
+        int ms = evaluateMath(extractExpressionTokens(tokens, i, ")")); 
+        while(i < tokens.size() && !tokens.get(i).value.equals(")")) i++;
+        if(check(tokens,i,")")) i++;
+        try { graphicsFrame.refresh(); Thread.sleep(ms); } catch(Exception e){}
+        if(check(tokens,i,";")) i++; return i;
+    }
+    
+    private int handlePrint(List<Token> tokens, int i) {
+        i++; if(check(tokens,i,"(")) i++;
+        List<Token> content = extractExpressionTokens(tokens, i, ")");
+        if (content.size() == 1 && content.get(0).type == Token.Type.LITERAL && content.get(0).value.startsWith("\"")) {
+            printSafe("> " + content.get(0).value.replace("\"", ""));
+        } else {
+            int val = evaluateMath(content);
+            printSafe("> " + val);
         }
-        return val1;
+        i += content.size();
+        if(check(tokens,i,")")) i++; if(check(tokens,i,";")) i++; return i;
+    }
+
+    private int handleColor(List<Token> tokens, int i) { return genericGraphics(tokens, i, (args)->graphicsFrame.setCurrentColor(args[0],args[1],args[2]), 3); }
+    private int handleCircle(List<Token> tokens, int i) { return genericGraphics(tokens, i, (args)->graphicsFrame.addCircle(args[0],args[1],args[2]), 3); }
+    private int handleRect(List<Token> tokens, int i) { return genericGraphics(tokens, i, (args)->graphicsFrame.addRect(args[0],args[1],args[2],args[3]), 4); }
+    private int handleLine(List<Token> tokens, int i) { return genericGraphics(tokens, i, (args)->graphicsFrame.addLine(args[0],args[1],args[2],args[3]), 4); }
+    private int handleTriangle(List<Token> tokens, int i) { return genericGraphics(tokens, i, (args)->graphicsFrame.addTriangle(args[0],args[1],args[2],args[3],args[4],args[5]), 6); }
+
+    private interface GfxAction { void apply(int[] args); }
+    private int genericGraphics(List<Token> tokens, int i, GfxAction action, int count) {
+        i++; if(check(tokens,i,"(")) i++;
+        int[] args = new int[count];
+        for(int k=0; k<count; k++) {
+            List<Token> argTokens = extractExpressionTokens(tokens, i, ",");
+             if (argTokens.isEmpty() && !check(tokens, i, ",")) {
+                 argTokens = extractExpressionTokens(tokens, i, ")");
+             }
+            args[k] = evaluateMath(argTokens);
+            i += argTokens.size();
+            if(k<count-1 && check(tokens,i,",")) i++;
+        }
+        if(check(tokens,i,")")) i++;
+        
+        // Only show window when graphics are actually used
+        graphicsStarted = true;
+        graphicsFrame.setVisible(true);
+        
+        action.apply(args);
+        if(check(tokens,i,";")) i++;
+        return i;
     }
 }

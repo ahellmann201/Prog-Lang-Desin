@@ -2,13 +2,14 @@ package finalProject;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Graphics Window.
- * FIXED: Implements Double Buffering to completely eliminate flickering.
- * Uses 'pendingShapes' for building the frame and 'currentShapes' for displaying it.
+ * UPDATED: Tracks 'isOpen' state to allow the Interpreter to stop execution if the user closes the window.
  */
 public class GraphicsFrame extends JFrame {
     
@@ -16,18 +17,28 @@ public class GraphicsFrame extends JFrame {
         void draw(Graphics2D g2d);
     }
 
-    // Two lists: One for the screen (current), one for the logic (pending)
     private List<ShapeCommand> currentShapes = new ArrayList<>();
     private List<ShapeCommand> pendingShapes = new ArrayList<>();
     
     private JPanel canvas;
     private Color currentColor = Color.BLACK;
+    
+    // Track if the window is logically "open" to control interpreter execution
+    private boolean open = false;
 
     public GraphicsFrame() {
         setTitle("Graphics Output Canvas");
         setSize(500, 500);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE); 
+        
+        // Detect user closing the window
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                open = false;
+            }
+        });
         
         canvas = new JPanel() {
             @Override
@@ -37,7 +48,6 @@ public class GraphicsFrame extends JFrame {
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2d.setStroke(new BasicStroke(2)); 
                 
-                // THREAD SAFETY: Only read the stable 'currentShapes' list
                 List<ShapeCommand> toDraw;
                 synchronized(GraphicsFrame.this) {
                     toDraw = currentShapes;
@@ -53,11 +63,30 @@ public class GraphicsFrame extends JFrame {
         canvas.setBackground(Color.WHITE);
         add(canvas);
     }
+    
+    @Override
+    public void setVisible(boolean b) {
+        super.setVisible(b);
+        if (b) open = true;
+    }
+    
+    public boolean isOpen() {
+        return open;
+    }
 
     /**
-     * Clears the pending buffer but DOES NOT wipe the screen yet.
-     * This prevents the "White Flash" between frames.
+     * Completely resets the graphics state.
      */
+    public void reset() {
+        synchronized(this) {
+            pendingShapes.clear();
+            currentShapes.clear();
+        }
+        currentColor = Color.BLACK;
+        // Do not force visibility here
+        canvas.repaint();
+    }
+
     public void clear() {
         synchronized(this) {
             pendingShapes.clear();
@@ -65,13 +94,8 @@ public class GraphicsFrame extends JFrame {
         currentColor = Color.BLACK;
     }
     
-    /**
-     * Updates the screen with the latest drawing commands.
-     * Swaps the pending buffer to the current buffer.
-     */
     public void refresh() {
         synchronized(this) {
-            // Atomic Swap: pending -> current
             currentShapes = new ArrayList<>(pendingShapes);
         }
         canvas.repaint();
@@ -80,10 +104,6 @@ public class GraphicsFrame extends JFrame {
     public void setCurrentColor(int r, int g, int b) {
         this.currentColor = new Color(r, g, b);
     }
-
-    // --- Drawing Commands ---
-    // NOTE: These now only add to the buffer. 
-    // The screen will not update until refresh() (triggered by sleep) is called.
 
     public void addCircle(int x, int y, int radius) {
         Color c = currentColor;
