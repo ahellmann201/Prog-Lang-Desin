@@ -43,6 +43,7 @@ public class UserInterface3 extends JFrame {
     private JToggleButton fillButton;
     private JButton clearScreenButton;
     private JButton executeButton; // Execute all code at once
+    private JButton stopButton;    // Stop program execution
     private JToggleButton encodingButton;
     private JButton undoButton;
     private JButton clearCodeButton;
@@ -50,6 +51,8 @@ public class UserInterface3 extends JFrame {
     private List<String> commandHistory = new ArrayList<>();
     private int historyIndex = -1;
     private boolean encodingMode = false;
+    private boolean programRunning = false;
+    private Thread programThread = null;
     
     /********************************************************************
      * METHOD: UserInterface3 Constructor
@@ -114,6 +117,8 @@ public class UserInterface3 extends JFrame {
         fillButton = new JToggleButton("Fill: OFF");
         clearScreenButton = new JButton("Clear Screen");
         executeButton = new JButton("Execute Code"); // Execute entire program
+        stopButton = new JButton("Stop Program"); // Stop execution
+        stopButton.setEnabled(false); // Disabled initially
         encodingButton = new JToggleButton("Encoding: OFF");
         undoButton = new JButton("Undo");
         clearCodeButton = new JButton("Clear Code");
@@ -140,6 +145,7 @@ public class UserInterface3 extends JFrame {
         // Button panel for editor controls
         JPanel editorButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         editorButtonPanel.add(executeButton);
+        editorButtonPanel.add(stopButton);
         editorButtonPanel.add(clearCodeButton);
         editorPanel.add(editorButtonPanel, BorderLayout.SOUTH);
         
@@ -363,6 +369,9 @@ public class UserInterface3 extends JFrame {
         // Execute button - runs entire program
         executeButton.addActionListener(e -> executeProgram());
         
+        // Stop button - stops program execution
+        stopButton.addActionListener(e -> stopProgram());
+        
         // Clear code button
         clearCodeButton.addActionListener(e -> {
             inputArea.setText("");
@@ -414,7 +423,7 @@ public class UserInterface3 extends JFrame {
                     (verbose ? "verbose\n" : "actual\n"));
         });
         
-        // Add keyboard shortcut for execute (Ctrl+Enter)
+        // Add keyboard shortcuts
         inputArea.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -427,11 +436,14 @@ public class UserInterface3 extends JFrame {
                 } else if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_F) {
                     formatCode();
                     e.consume();
+                } else if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_PERIOD) {
+                    stopProgram(); // Ctrl+. to stop
+                    e.consume();
                 }
             }
         });
         
-        // Mouse listener for polygon drawing (unchanged from original)
+        // Mouse listener for polygon drawing
         drawingPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -439,6 +451,37 @@ public class UserInterface3 extends JFrame {
                     ioHandler.addPolygonPoint(new Point(e.getX(), e.getY()));
                     drawingPanel.repaint();
                     ioHandler.appendToHistory("Added point: (" + e.getX() + ", " + e.getY() + ")\n");
+                }
+            }
+        });
+        
+        // Add keyboard history navigation (UP and DOWN arrows)
+        inputArea.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_UP) {
+                    if (!commandHistory.isEmpty()) {
+                        if (historyIndex > 0) {
+                            historyIndex--;
+                        }
+                        inputArea.setText(commandHistory.get(historyIndex));
+                        // Move cursor to end of text for easy editing
+                        inputArea.setCaretPosition(inputArea.getText().length());
+                    }
+                    e.consume(); // Prevent default behavior
+                } else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+                    if (!commandHistory.isEmpty()) {
+                        if (historyIndex < commandHistory.size() - 1) {
+                            historyIndex++;
+                            inputArea.setText(commandHistory.get(historyIndex));
+                            // Move cursor to end of text for easy editing
+                            inputArea.setCaretPosition(inputArea.getText().length());
+                        } else {
+                            historyIndex = commandHistory.size();
+                            inputArea.setText("");
+                        }
+                    }
+                    e.consume(); // Prevent default behavior
                 }
             }
         });
@@ -457,37 +500,123 @@ public class UserInterface3 extends JFrame {
             return;
         }
         
+        // Don't start new program if one is already running
+        if (programRunning) {
+            ioHandler.appendToHistory("System: Program is already running. Stop it first.\n");
+            return;
+        }
+        
+        // Update UI state
+        programRunning = true;
+        executeButton.setEnabled(false);
+        stopButton.setEnabled(true);
+        
         ioHandler.appendToHistory("\n=== EXECUTING PROGRAM ===\n");
         
         // Save to command history
         commandHistory.add(program);
         historyIndex = commandHistory.size();
         
-        // Parse and execute the program
-        CodeBlockParser parser = new CodeBlockParser();
-        List<CodeStatement> statements = parser.parseProgram(program);
-        
-        for (CodeStatement stmt : statements) {
-            if (encodingMode) {
-                List<Integer> encodedLine = tokenEncoder.encodeCommand(stmt.getSource());
-                ioHandler.appendToHistory("Encoded: " + encodedLine + "\n");
+        // Run program in separate thread so UI remains responsive
+        programThread = new Thread(() -> {
+            try {
+                // Parse and execute the program
+                CodeBlockParser parser = new CodeBlockParser();
+                List<CodeStatement> statements = parser.parseProgram(program);
+                
+                for (CodeStatement stmt : statements) {
+                    // Check if thread was interrupted (user pressed stop)
+                    if (Thread.currentThread().isInterrupted()) {
+                        throw new InterruptedException("Program stopped by user");
+                    }
+                    
+                    if (encodingMode) {
+                        List<Integer> encodedLine = tokenEncoder.encodeCommand(stmt.getSource());
+                        ioHandler.appendToHistory("Encoded: " + encodedLine + "\n");
+                    }
+                    
+                    // Process the statement
+                    processCodeStatement(stmt);
+                    
+                    // Small delay to make execution visible
+                    try {
+                        Thread.sleep(50); // 50ms between statements
+                    } catch (InterruptedException e) {
+                        throw e; // Re-throw to stop execution
+                    }
+                }
+                
+                // Program completed successfully
+                SwingUtilities.invokeLater(() -> {
+                    ioHandler.appendToHistory("=== PROGRAM COMPLETED ===\n");
+                    programRunning = false;
+                    executeButton.setEnabled(true);
+                    stopButton.setEnabled(false);
+                    programThread = null;
+                });
+                
+            } catch (InterruptedException e) {
+                // Program was stopped by user
+                SwingUtilities.invokeLater(() -> {
+                    ioHandler.appendToHistory("=== PROGRAM STOPPED ===\n");
+                    programRunning = false;
+                    executeButton.setEnabled(true);
+                    stopButton.setEnabled(false);
+                    programThread = null;
+                });
+            } catch (Exception e) {
+                // Other errors
+                SwingUtilities.invokeLater(() -> {
+                    ioHandler.appendToHistory("System: Error executing program: " + e.getMessage() + "\n");
+                    ioHandler.appendToHistory("=== PROGRAM ABORTED ===\n");
+                    programRunning = false;
+                    executeButton.setEnabled(true);
+                    stopButton.setEnabled(false);
+                    programThread = null;
+                });
+                e.printStackTrace();
             }
-            
-            // Process the statement
-            processCodeStatement(stmt);
-        }
+        });
         
-        ioHandler.appendToHistory("=== PROGRAM COMPLETED ===\n");
+        programThread.start();
         drawingPanel.repaint();
+    }
+    
+    /********************************************************************
+     * METHOD: stopProgram
+     * DESCRIPTION: Stops the currently running program
+     * PARAMETERS: None
+     * RETURN VALUE: None
+     ********************************************************************/
+    private void stopProgram() {
+        if (programRunning && programThread != null) {
+            programThread.interrupt();
+            programRunning = false;
+            
+            // Update UI state
+            stopButton.setEnabled(false);
+            executeButton.setEnabled(true);
+            
+            ioHandler.appendToHistory("System: Program execution stopped by user\n");
+            
+            // Also stop any animations that might be running
+            animationSystem.stopAnimation();
+        }
     }
     
     /********************************************************************
      * METHOD: processCodeStatement
      * DESCRIPTION: Processes a single code statement (handles control structures)
+     *              Now checks for interruption
      * PARAMETERS: CodeStatement stmt - the statement to process
      * RETURN VALUE: None
      ********************************************************************/
     private void processCodeStatement(CodeStatement stmt) {
+        // Check if thread was interrupted
+        if (Thread.currentThread().isInterrupted()) {
+            return;
+        }
+        
         String line = stmt.getSource().trim();
         
         // Skip empty lines
@@ -501,7 +630,7 @@ public class UserInterface3 extends JFrame {
         // Handle interpreter commands
         if (line.startsWith("integer ") || line.startsWith("input ") || 
             line.startsWith("print ") || line.startsWith("if ") || 
-            line.startsWith("while ") || line.startsWith("line ")) {
+            line.startsWith("while ") || line.startsWith("for ")) {
             interpreter.interpretLine(line);
             return;
         }
@@ -522,6 +651,7 @@ public class UserInterface3 extends JFrame {
                 ioHandler.clearPolygonPoints();
                 ioHandler.appendToHistory("System: Click to add polygon points. Type 'endpolygon' when done.\n");
                 break;
+                
             case "endpolygon":
                 if (ioHandler.isDrawingPolygon()) {
                     ioHandler.setDrawingPolygon(false);
@@ -533,40 +663,145 @@ public class UserInterface3 extends JFrame {
                     }
                 }
                 break;
+                
             case "clearpolygon":
                 ioHandler.clearPolygonPoints();
                 drawingPanel.repaint();
                 ioHandler.appendToHistory("System: Polygon points cleared\n");
                 break;
+                
             case "fill":
-                handleFillCommand(line);
+                String[] fillParts = line.split(" ");
+                if (fillParts.length >= 2) {
+                    if (fillParts[1].equalsIgnoreCase("on")) {
+                        codeGeneration.setFillShape(true);
+                        fillButton.setSelected(true);
+                        fillButton.setText("Fill: ON");
+                        ioHandler.appendToHistory("System: Fill mode enabled\n");
+                    } else if (fillParts[1].equalsIgnoreCase("off")) {
+                        codeGeneration.setFillShape(false);
+                        fillButton.setSelected(false);
+                        fillButton.setText("Fill: OFF");
+                        ioHandler.appendToHistory("System: Fill mode disabled\n");
+                    }
+                }
                 break;
+                
             case "set":
-                handleSetCommand(line);
+                String[] setParts = line.substring(4).split("=");
+                if (setParts.length == 2) {
+                    String varName = setParts[0].trim();
+                    try {
+                        int value = Integer.parseInt(setParts[1].trim());
+                        ioHandler.setVariable(varName, value);
+                        ioHandler.appendToHistory("System: Set variable " + varName + " = " + value + "\n");
+                    } catch (NumberFormatException e) {
+                        ioHandler.appendToHistory("System: Invalid value for variable. Use: set var=value\n");
+                    }
+                } else {
+                    ioHandler.appendToHistory("System: Invalid set command. Use: set var=value\n");
+                }
                 break;
+                
             case "animation":
-                handleAnimationCommand(line);
+                if (line.length() > 10) {
+                    String animName = line.substring(10).trim();
+                    animationSystem.createAnimation(animName);
+                } else {
+                    ioHandler.appendToHistory("System: Usage: animation <name>\n");
+                }
                 break;
+                
             case "keyframe":
-                handleKeyframeCommand(line);
+                if (line.length() > 9) {
+                    String frameName = line.substring(9).trim();
+                    animationSystem.addKeyframe(frameName);
+                } else {
+                    ioHandler.appendToHistory("System: Usage: keyframe <name>\n");
+                }
                 break;
+                
             case "play":
-                handlePlayCommand(line);
+                if (line.length() > 5) {
+                    String animName = line.substring(5).trim();
+                    animationSystem.playAnimation(animName);
+                } else {
+                    ioHandler.appendToHistory("System: Usage: play <animationName>\n");
+                }
                 break;
+                
             case "stop":
                 animationSystem.stopAnimation();
                 break;
+                
             case "delay":
-                handleDelayCommand(line);
+                if (line.length() > 6) {
+                    try {
+                        long delay = Long.parseLong(line.substring(6).trim());
+                        animationSystem.setFrameDelay(delay);
+                    } catch (NumberFormatException e) {
+                        ioHandler.appendToHistory("System: Invalid delay value. Usage: delay <milliseconds>\n");
+                    }
+                } else {
+                    ioHandler.appendToHistory("System: Usage: delay <milliseconds>\n");
+                }
                 break;
+                
             case "clear":
                 codeGeneration.clearScreen(ioHandler);
                 drawingPanel.repaint();
                 ioHandler.appendToHistory("System: Screen cleared\n");
                 break;
+                
             case "help":
                 displayHelp();
                 break;
+                
+            case "undo":
+                if (codeGeneration.undoLastCommand(ioHandler)) {
+                    drawingPanel.repaint();
+                }
+                break;
+                
+            case "loop":
+                // Start loop recording
+                if (line.toLowerCase().equals("loop start") || line.toLowerCase().equals("start loop")) {
+                    codeGeneration.startLoopRecording(ioHandler);
+                    ioHandler.appendToHistory("System: Started recording loop\n");
+                } 
+                // End loop recording
+                else if (line.toLowerCase().startsWith("loop end") || line.toLowerCase().startsWith("end loop")) {
+                    String loopName = "loop1"; // Default name
+                    String[] parts = line.split(" ");
+                    if (parts.length > 2) {
+                        loopName = parts[2];
+                    }
+                    codeGeneration.endLoopRecording(loopName, ioHandler);
+                }
+                // Play loop
+                else if (line.toLowerCase().startsWith("loop play") || line.toLowerCase().startsWith("play loop")) {
+                    String loopName = "loop1"; // Default name
+                    String[] parts = line.split(" ");
+                    if (parts.length > 2) {
+                        loopName = parts[2];
+                    }
+                    codeGeneration.playLoop(loopName, drawingPanel, ioHandler);
+                }
+                break;
+                
+            case "show":
+                if (line.toLowerCase().contains("encoding")) {
+                    displayEncodingState();
+                } else if (line.toLowerCase().contains("var")) {
+                    ioHandler.showVariables();
+                }
+                break;
+                
+            case "clearencoding":
+                tokenEncoder.clear();
+                ioHandler.appendToHistory("System: Encoding state cleared\n");
+                break;
+                
             default:
                 // Process shape commands
                 if (isShapeCommand(lowerCommand)) {
@@ -576,7 +811,10 @@ public class UserInterface3 extends JFrame {
                         processDrawingCommand(line);
                     }
                 } else {
-                    ioHandler.appendToHistory("System: Unknown command: " + line + "\n");
+                    // Check for comment lines
+                    if (!line.startsWith("#") && !line.startsWith("//")) {
+                        ioHandler.appendToHistory("System: Unknown command: " + line + "\nType 'help' for available commands\n");
+                    }
                 }
                 break;
         }
@@ -603,115 +841,6 @@ public class UserInterface3 extends JFrame {
         return command.startsWith("circle") || command.startsWith("triangle") || 
                command.startsWith("rectangle") || command.startsWith("square") || 
                command.startsWith("points") || command.startsWith("line");
-    }
-    
-    /********************************************************************
-     * METHOD: handleFillCommand
-     * DESCRIPTION: Processes the fill command
-     * PARAMETERS: String command - the fill command
-     * RETURN VALUE: None
-     ********************************************************************/
-    private void handleFillCommand(String command) {
-        String[] parts = command.split(" ");
-        if (parts.length >= 2) {
-            if (parts[1].equalsIgnoreCase("on")) {
-                codeGeneration.setFillShape(true);
-                fillButton.setSelected(true);
-                fillButton.setText("Fill: ON");
-                ioHandler.appendToHistory("System: Fill mode enabled\n");
-            } else if (parts[1].equalsIgnoreCase("off")) {
-                codeGeneration.setFillShape(false);
-                fillButton.setSelected(false);
-                fillButton.setText("Fill: OFF");
-                ioHandler.appendToHistory("System: Fill mode disabled\n");
-            }
-        }
-    }
-    
-    /********************************************************************
-     * METHOD: handleSetCommand
-     * DESCRIPTION: Processes the set variable command
-     * PARAMETERS: String command - the set command
-     * RETURN VALUE: None
-     ********************************************************************/
-    private void handleSetCommand(String command) {
-        String[] setParts = command.substring(4).split("=");
-        if (setParts.length == 2) {
-            String varName = setParts[0].trim();
-            try {
-                int value = Integer.parseInt(setParts[1].trim());
-                ioHandler.setVariable(varName, value);
-                ioHandler.appendToHistory("System: Set variable " + varName + " = " + value + "\n");
-            } catch (NumberFormatException e) {
-                ioHandler.appendToHistory("System: Invalid value for variable. Use: set var=value\n");
-            }
-        } else {
-            ioHandler.appendToHistory("System: Invalid set command. Use: set var=value\n");
-        }
-    }
-    
-    /********************************************************************
-     * METHOD: handleAnimationCommand
-     * DESCRIPTION: Processes animation creation command
-     * PARAMETERS: String command - the animation command
-     * RETURN VALUE: None
-     ********************************************************************/
-    private void handleAnimationCommand(String command) {
-        if (command.length() > 10) {
-            String animName = command.substring(10).trim();
-            animationSystem.createAnimation(animName);
-        } else {
-            ioHandler.appendToHistory("System: Usage: animation <name>\n");
-        }
-    }
-    
-    /********************************************************************
-     * METHOD: handleKeyframeCommand
-     * DESCRIPTION: Processes keyframe creation command
-     * PARAMETERS: String command - the keyframe command
-     * RETURN VALUE: None
-     ********************************************************************/
-    private void handleKeyframeCommand(String command) {
-        if (command.length() > 9) {
-            String frameName = command.substring(9).trim();
-            animationSystem.addKeyframe(frameName);
-        } else {
-            ioHandler.appendToHistory("System: Usage: keyframe <name>\n");
-        }
-    }
-    
-    /********************************************************************
-     * METHOD: handlePlayCommand
-     * DESCRIPTION: Processes animation play command
-     * PARAMETERS: String command - the play command
-     * RETURN VALUE: None
-     ********************************************************************/
-    private void handlePlayCommand(String command) {
-        if (command.length() > 5) {
-            String animName = command.substring(5).trim();
-            animationSystem.playAnimation(animName);
-        } else {
-            ioHandler.appendToHistory("System: Usage: play <animationName>\n");
-        }
-    }
-    
-    /********************************************************************
-     * METHOD: handleDelayCommand
-     * DESCRIPTION: Processes animation delay command
-     * PARAMETERS: String command - the delay command
-     * RETURN VALUE: None
-     ********************************************************************/
-    private void handleDelayCommand(String command) {
-        if (command.length() > 6) {
-            try {
-                long delay = Long.parseLong(command.substring(6).trim());
-                animationSystem.setFrameDelay(delay);
-            } catch (NumberFormatException e) {
-                ioHandler.appendToHistory("System: Invalid delay value. Usage: delay <milliseconds>\n");
-            }
-        } else {
-            ioHandler.appendToHistory("System: Usage: delay <milliseconds>\n");
-        }
     }
     
     /********************************************************************
@@ -742,7 +871,7 @@ public class UserInterface3 extends JFrame {
     
     /********************************************************************
      * METHOD: processCommandForLoop
-     * DESCRIPTION: Processes a command for loop recording
+     * DESCRIPTION: Processes a drawing command for loop recording
      * PARAMETERS: String command - the command to process
      * RETURN VALUE: None
      ********************************************************************/
@@ -911,6 +1040,61 @@ public class UserInterface3 extends JFrame {
     }
     
     /********************************************************************
+     * METHOD: loadProgramIntoEditor
+     * DESCRIPTION: Loads a program into the code editor
+     * PARAMETERS: String program - the program to load
+     * RETURN VALUE: None
+     ********************************************************************/
+    public void loadProgramIntoEditor(String program) {
+        inputArea.setText(program);
+        updateLineNumbers();
+    }
+    
+    /********************************************************************
+     * METHOD: displayEncodingState
+     * DESCRIPTION: Displays the current encoding state (tables and program)
+     * PARAMETERS: None
+     * RETURN VALUE: None
+     ********************************************************************/
+    private void displayEncodingState() {
+        ioHandler.appendToHistory("\n=== ENCODING STATE ===\n");
+
+        // Display symbol table
+        ioHandler.appendToHistory("Symbol Table:\n");
+        Map<String, Integer> symbolTable = tokenEncoder.getSymbolTable();
+        if (symbolTable.isEmpty()) {
+            ioHandler.appendToHistory(" No symbols defined\n");
+        } else {
+            for (Map.Entry<String, Integer> entry : symbolTable.entrySet()) {
+                ioHandler.appendToHistory(" " + entry.getValue() + " " + entry.getKey() + "\n");
+            }
+        }
+
+        // Display literal table
+        ioHandler.appendToHistory("Literal Table:\n");
+        Map<Integer, Integer> literalTable = tokenEncoder.getLiteralTable();
+        if (literalTable.isEmpty()) {
+            ioHandler.appendToHistory(" No literals defined\n");
+        } else {
+            for (Map.Entry<Integer, Integer> entry : literalTable.entrySet()) {
+                ioHandler.appendToHistory(" " + entry.getValue() + " " + entry.getKey() + "\n");
+            }
+        }
+
+        // Display encoded program
+        ioHandler.appendToHistory("Encoded Program:\n");
+        List<Integer> encodedProgram = tokenEncoder.getEncodedProgram();
+
+        if (encodedProgram.isEmpty()) {
+            ioHandler.appendToHistory(" No commands encoded yet\n");
+        } else {
+            ioHandler.appendToHistory(" " + encodedProgram + "\n");
+        }
+
+        ioHandler.appendToHistory("========================= \n");
+    }
+    
+    /********************************************************************
      * METHOD: displayHelp
      * DESCRIPTION: Displays help message with available commands
      * PARAMETERS: None
@@ -919,7 +1103,7 @@ public class UserInterface3 extends JFrame {
     private void displayHelp() {
         ioHandler.appendToHistory("\n=== DRAWING CHAT APPLICATION - HELP ===\n");
         ioHandler.appendToHistory("Write your program in the code editor below, then click 'Execute Code'.\n");
-        ioHandler.appendToHistory("Or use Ctrl+Enter to execute.\n\n");
+        ioHandler.appendToHistory("Or use Ctrl+Enter to execute, Ctrl+. to stop.\n\n");
         
         ioHandler.appendToHistory("BASIC SHAPES:\n");
         ioHandler.appendToHistory("circle, radius, x, y\n");
@@ -959,6 +1143,8 @@ public class UserInterface3 extends JFrame {
         ioHandler.appendToHistory("OTHER COMMANDS:\n");
         ioHandler.appendToHistory("fill on/off - Toggle fill mode\n");
         ioHandler.appendToHistory("clear - Clear all shapes\n");
+        ioHandler.appendToHistory("undo - Undo last shape\n");
+        ioHandler.appendToHistory("loop start/end/play - Loop recording\n");
         ioHandler.appendToHistory("help - Show this message\n");
         ioHandler.appendToHistory("========================================\n");
     }
@@ -1272,15 +1458,5 @@ public class UserInterface3 extends JFrame {
      ********************************************************************/
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new UserInterface3());
-    }
-    /********************************************************************
-     * METHOD: loadProgramIntoEditor
-     * DESCRIPTION: Loads a program into the code editor
-     * PARAMETERS: String program - the program to load
-     * RETURN VALUE: None
-     ********************************************************************/
-    public void loadProgramIntoEditor(String program) {
-        inputArea.setText(program);
-        updateLineNumbers();
     }
 }
