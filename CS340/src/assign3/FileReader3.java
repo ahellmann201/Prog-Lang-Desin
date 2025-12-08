@@ -198,7 +198,7 @@ public class FileReader3 {
         
         if (lowerCommand.startsWith("circle")) {
             codeGen.processCircleCommandForLoop(command, ioHandler);
-        } 
+        }
         else if (lowerCommand.startsWith("triangle")) {
             codeGen.processTriangleCommandForLoop(command, ioHandler);
         }
@@ -210,6 +210,9 @@ public class FileReader3 {
         }
         else if (lowerCommand.startsWith("points")) {
             codeGen.processPointsCommandForLoop(command, ioHandler);
+        }
+        else if (lowerCommand.startsWith("line")) { // NEW: Line command
+            codeGen.processLineCommandForLoop(command, ioHandler);
         }
         else {
             ioHandler.appendToHistory("System: Unknown command: " + command + "\n");
@@ -230,7 +233,7 @@ public class FileReader3 {
         
         if (lowerCommand.startsWith("circle")) {
             codeGen.processCircleCommand(command, ioHandler);
-        } 
+        }
         else if (lowerCommand.startsWith("triangle")) {
             codeGen.processTriangleCommand(command, ioHandler);
         }
@@ -242,6 +245,9 @@ public class FileReader3 {
         }
         else if (lowerCommand.startsWith("points")) {
             codeGen.processPointsCommand(command, ioHandler);
+        }
+        else if (lowerCommand.startsWith("line")) { // NEW: Line command
+            codeGen.processLineCommand(command, ioHandler);
         }
         else if (lowerCommand.startsWith("animation ")) {
             if (command.length() > 10) {

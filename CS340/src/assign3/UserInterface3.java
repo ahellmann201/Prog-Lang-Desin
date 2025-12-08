@@ -164,7 +164,7 @@ public class UserInterface3 extends JFrame {
         });
 
         playLoopItem.addActionListener(e -> {
-            List<CodeGeneration3.Loop> loops = codeGeneration.getLoops();
+            List<Loop> loops = codeGeneration.getLoops();
             if (loops.isEmpty()) {
                 ioHandler.appendToHistory("System: No loops saved\n");
                 return;
@@ -451,135 +451,146 @@ public class UserInterface3 extends JFrame {
      * PARAMETERS: String text - the input text
      * RETURN VALUE: None
      ********************************************************************/
-    private void processCommandNormally(String text) {
-        ioHandler.appendToHistory("You: " + text + "\n");
-        
-        // Check if this is a for loop
-        if (text.toLowerCase().startsWith("for")) {
-            processForLoop(text);
-            return;
-        }
-
-        String lowerCommand = text.toLowerCase();
-        String firstWord = lowerCommand.split(" ")[0];
-        
-        // Use switch-case for organized command handling
-        switch (firstWord) {
-            case "polygon":
-                ioHandler.setDrawingPolygon(true);
-                ioHandler.clearPolygonPoints();
-                ioHandler.appendToHistory("System: Click on the drawing area to add polygon points. Type 'endpolygon' when done.\n");
-                break;
-            case "endpolygon":
-                if (ioHandler.isDrawingPolygon()) {
-                    ioHandler.setDrawingPolygon(false);
-                    if (ioHandler.getPolygonPoints().size() >= 3) {
-                        codeGeneration.endPolygon(ioHandler, codeGeneration.isRecordingLoop());
-                        drawingPanel.repaint();
-                    } else {
-                        ioHandler.appendToHistory("System: Need at least 3 points to draw a polygon\n");
-                    }
-                }
-                break;
-            case "clearpolygon":
-                ioHandler.clearPolygonPoints();
-                drawingPanel.repaint();
-                ioHandler.appendToHistory("System: Polygon points cleared\n");
-                break;
-            case "fill":
-                String[] fillParts = text.split(" ");
-                if (fillParts.length >= 2) {
-                    if (fillParts[1].equalsIgnoreCase("on")) {
-                        codeGeneration.setFillShape(true);
-                        fillButton.setSelected(true);
-                        fillButton.setText("Fill: ON");
-                        ioHandler.appendToHistory("System: Fill mode enabled\n");
-                    } else if (fillParts[1].equalsIgnoreCase("off")) {
-                        codeGeneration.setFillShape(false);
-                        fillButton.setSelected(false);
-                        fillButton.setText("Fill: OFF");
-                        ioHandler.appendToHistory("System: Fill mode disabled\n");
-                    }
-                }
-                break;
-            case "set":
-                String[] setParts = text.substring(4).split("=");
-                if (setParts.length == 2) {
-                    String varName = setParts[0].trim();
-                    try {
-                        int value = Integer.parseInt(setParts[1].trim());
-                        ioHandler.setVariable(varName, value);
-                        ioHandler.appendToHistory("System: Set variable " + varName + " = " + value + "\n");
-                    } catch (NumberFormatException e) {
-                        ioHandler.appendToHistory("System: Invalid value for variable. Use: set var=value\n");
-                    }
-                } else {
-                    ioHandler.appendToHistory("System: Invalid set command. Use: set var=value\n");
-                }
-                break;
-            case "animation":
-                if (text.length() > 10) {
-                    String animName = text.substring(10).trim();
-                    animationSystem.createAnimation(animName);
-                } else {
-                    ioHandler.appendToHistory("System: Usage: animation <name>!\n");
-                }
-                break;
-            case "keyframe":
-                if (text.length() > 9) {
-                    String frameName = text.substring(9).trim();
-                    animationSystem.addKeyframe(frameName);
-                } else {
-                    ioHandler.appendToHistory("System: Usage: keyframe <name>!\n");
-                }
-                break;
-            case "play":
-                if (text.length() > 5) {
-                    String animName = text.substring(5).trim();
-                    animationSystem.playAnimation(animName);
-                } else {
-                    ioHandler.appendToHistory("System: Usage: play <animationName>!\n");
-                }
-                break;
-            case "stop":
-                animationSystem.stopAnimation();
-                break;
-            case "delay":
-                if (text.length() > 6) {
-                    try {
-                        long delay = Long.parseLong(text.substring(6).trim());
-                        animationSystem.setFrameDelay(delay);
-                    } catch (NumberFormatException e) {
-                        ioHandler.appendToHistory("System: Invalid delay value. Usage: delay <milliseconds>!\n");
-                    }
-                } else {
-                    ioHandler.appendToHistory("System: Usage: delay <milliseconds>!\n");
-                }
-                break;
-            case "clear":
-                codeGeneration.clearScreen(ioHandler);
-                drawingPanel.repaint();
-                ioHandler.appendToHistory("System: Screen cleared\n");
-                break;
-            case "help":
-                displayHelp();
-                break;
-            default:
-                // Process shape commands
-                if (lowerCommand.startsWith("circle") || lowerCommand.startsWith("triangle") || 
-                    lowerCommand.startsWith("rectangle") || lowerCommand.startsWith("square") || 
-                    lowerCommand.startsWith("points")) {
-                    if (codeGeneration.isRecordingLoop()) {
-                        processCommandForLoop(text);
-                    } else {
-                        processCommand(text);
-                    }
-                } else {
-                    ioHandler.appendToHistory("System: Unknown command: " + text + "\nType 'help' for available commands\n");
-                }
-                break;
-        }
-    }
+     private void processCommandNormally(String text) {
+         ioHandler.appendToHistory("You: " + text + "\n");
+         
+         // Check if this is an interpreter command first
+         if (text.trim().startsWith("integer ") || 
+             text.trim().startsWith("input ") || 
+             text.trim().startsWith("print ") ||
+             text.trim().startsWith("if ") ||        
+             text.trim().startsWith("line ")) {      
+             
+             interpreter.interpretLine(text);
+             return;
+         }
+         
+         // Check if this is a for loop
+         if (text.toLowerCase().startsWith("for")) {
+             processForLoop(text);
+             return;
+         }
+         
+         String lowerCommand = text.toLowerCase();
+         String firstWord = lowerCommand.split(" ")[0];
+         
+         // Use switch-case for organized command handling
+         switch (firstWord) {
+             case "polygon":
+                 ioHandler.setDrawingPolygon(true);
+                 ioHandler.clearPolygonPoints();
+                 ioHandler.appendToHistory("System: Click on the drawing area to add polygon points. Type 'endpolygon' when done.\n");
+                 break;
+             case "endpolygon":
+                 if (ioHandler.isDrawingPolygon()) {
+                     ioHandler.setDrawingPolygon(false);
+                     if (ioHandler.getPolygonPoints().size() >= 3) {
+                         codeGeneration.endPolygon(ioHandler, codeGeneration.isRecordingLoop());
+                         drawingPanel.repaint();
+                     } else {
+                         ioHandler.appendToHistory("System: Need at least 3 points to draw a polygon\n");
+                     }
+                 }
+                 break;
+             case "clearpolygon":
+                 ioHandler.clearPolygonPoints();
+                 drawingPanel.repaint();
+                 ioHandler.appendToHistory("System: Polygon points cleared\n");
+                 break;
+             case "fill":
+                 String[] fillParts = text.split(" ");
+                 if (fillParts.length >= 2) {
+                     if (fillParts[1].equalsIgnoreCase("on")) {
+                         codeGeneration.setFillShape(true);
+                         fillButton.setSelected(true);
+                         fillButton.setText("Fill: ON");
+                         ioHandler.appendToHistory("System: Fill mode enabled\n");
+                     } else if (fillParts[1].equalsIgnoreCase("off")) {
+                         codeGeneration.setFillShape(false);
+                         fillButton.setSelected(false);
+                         fillButton.setText("Fill: OFF");
+                         ioHandler.appendToHistory("System: Fill mode disabled\n");
+                     }
+                 }
+                 break;
+             case "set":
+                 String[] setParts = text.substring(4).split("=");
+                 if (setParts.length == 2) {
+                     String varName = setParts[0].trim();
+                     try {
+                         int value = Integer.parseInt(setParts[1].trim());
+                         ioHandler.setVariable(varName, value);
+                         ioHandler.appendToHistory("System: Set variable " + varName + " = " + value + "\n");
+                     } catch (NumberFormatException e) {
+                         ioHandler.appendToHistory("System: Invalid value for variable. Use: set var=value\n");
+                     }
+                 } else {
+                     ioHandler.appendToHistory("System: Invalid set command. Use: set var=value\n");
+                 }
+                 break;
+             case "animation":
+                 if (text.length() > 10) {
+                     String animName = text.substring(10).trim();
+                     animationSystem.createAnimation(animName);
+                 } else {
+                     ioHandler.appendToHistory("System: Usage: animation <name>!\n");
+                 }
+                 break;
+             case "keyframe":
+                 if (text.length() > 9) {
+                     String frameName = text.substring(9).trim();
+                     animationSystem.addKeyframe(frameName);
+                 } else {
+                     ioHandler.appendToHistory("System: Usage: keyframe <name>!\n");
+                 }
+                 break;
+             case "play":
+                 if (text.length() > 5) {
+                     String animName = text.substring(5).trim();
+                     animationSystem.playAnimation(animName);
+                 } else {
+                     ioHandler.appendToHistory("System: Usage: play <animationName>!\n");
+                 }
+                 break;
+             case "stop":
+                 animationSystem.stopAnimation();
+                 break;
+             case "delay":
+                 if (text.length() > 6) {
+                     try {
+                         long delay = Long.parseLong(text.substring(6).trim());
+                         animationSystem.setFrameDelay(delay);
+                     } catch (NumberFormatException e) {
+                         ioHandler.appendToHistory("System: Invalid delay value. Usage: delay <milliseconds>!\n");
+                     }
+                 } else {
+                     ioHandler.appendToHistory("System: Usage: delay <milliseconds>!\n");
+                 }
+                 break;
+             case "clear":
+                 codeGeneration.clearScreen(ioHandler);
+                 drawingPanel.repaint();
+                 ioHandler.appendToHistory("System: Screen cleared\n");
+                 break;
+             case "help":
+                 displayHelp();
+                 break;
+             default:
+                 // Process shape commands
+                 if (lowerCommand.startsWith("circle") || lowerCommand.startsWith("triangle") ||
+                     lowerCommand.startsWith("rectangle") || lowerCommand.startsWith("square") ||
+                     lowerCommand.startsWith("points") || lowerCommand.startsWith("line")) {
+                     if (codeGeneration.isRecordingLoop()) {
+                         processCommandForLoop(text);
+                     } else {
+                         processCommand(text);
+                     }
+                 } else {
+                     ioHandler.appendToHistory("System: Unknown command: " + text + "\nType 'help' for available commands\n");
+                 }
+                 break;
+         }
+     }
 
     /********************************************************************
      * METHOD: displayEncodingState
@@ -630,45 +641,53 @@ public class UserInterface3 extends JFrame {
      * PARAMETERS: None
      * RETURN VALUE: None
      ********************************************************************/
-    private void displayHelp() {
-        ioHandler.appendToHistory("Available commands:\n");
-        ioHandler.appendToHistory("circle, radius, x, y\n");
-        ioHandler.appendToHistory("triangle, x1, y1, x2, y2, x3, y3\n");
-        ioHandler.appendToHistory("rectangle, x1, y1, x2, y2\n");
-        ioHandler.appendToHistory("square, x, y, size\n\n");
-        
-        ioHandler.appendToHistory("polygon - Start adding points by clicking on the drawing area\n");
-        ioHandler.appendToHistory("endpolygon - Finish drawing the polygon\n");
-        ioHandler.appendToHistory("clearpolygon - Clear current polygon points\n");
-        ioHandler.appendToHistory("points, x1,y1 x2,y2 x3,y3 ... - Draw polygon with specified points\n\n");
-        
-        ioHandler.appendToHistory("for(var=start;condition;increment): command - Execute a for loop\n");
-        ioHandler.appendToHistory(" Example: for(x=0;x<=200;x+=5): circle,50+x,250,250\n\n");
-        ioHandler.appendToHistory("set var=value - Set a variable (e.g., set size=50)\n");
-        ioHandler.appendToHistory("show vars - Show all variables\n");
-        ioHandler.appendToHistory("clear vars - Clear all variables\n\n");
-        ioHandler.appendToHistory("undo - Remove the last drawn shape (or Ctrl+Z)\n");
-        
-        ioHandler.appendToHistory("fill on / fill off - Toggle fill mode for shapes\n");
-        ioHandler.appendToHistory("clear - Clear all shapes from the screen\n");
-        
-        ioHandler.appendToHistory("\n=== ANIMATION COMMANDS ===\n");
-        ioHandler.appendToHistory("animation <name> - Create a new animation\n");
-        ioHandler.appendToHistory("keyframe <name> - Capture current shapes as a keyframe\n");
-        ioHandler.appendToHistory("play <animationName> - Play the specified animation\n");
-        ioHandler.appendToHistory("stop - Stop the current animation\n");
-        ioHandler.appendToHistory("delay <ms> - Set frame delay in milliseconds\n");
-        
-        ioHandler.appendToHistory("\n=== ENCODING COMMANDS ===\n");
-        ioHandler.appendToHistory("Click 'Encoding: ON' button to enable encoding mode\n");
-        ioHandler.appendToHistory("show encoding - Display current encoding state\n");
-        ioHandler.appendToHistory("clear encoding - Clear encoding tables\n");
-        ioHandler.appendToHistory("In encoding mode, all commands are automatically encoded\n");
-    }
+     private void displayHelp() {
+         ioHandler.appendToHistory("Available commands:\n");
+         ioHandler.appendToHistory("circle, radius, x, y\n");
+         ioHandler.appendToHistory("triangle, x1, y1, x2, y2, x3, y3\n");
+         ioHandler.appendToHistory("rectangle, x1, y1, x2, y2\n");
+         ioHandler.appendToHistory("square, x, y, size\n");
+         ioHandler.appendToHistory("line, x1, y1, x2, y2\n\n"); // NEW: Line command
+         
+         ioHandler.appendToHistory("polygon - Start adding points by clicking on the drawing area\n");
+         ioHandler.appendToHistory("endpolygon - Finish drawing the polygon\n");
+         ioHandler.appendToHistory("clearpolygon - Clear current polygon points\n");
+         ioHandler.appendToHistory("points, x1,y1 x2,y2 x3,y3 ... - Draw polygon with specified points\n\n");
+         
+         ioHandler.appendToHistory("for(var=start;condition;increment): command - Execute a for loop\n");
+         ioHandler.appendToHistory(" Example: for(x=0;x<=200;x+=5): circle,50+x,250,250\n\n");
+         ioHandler.appendToHistory("set var=value - Set a variable (e.g., set size=50)\n");
+         ioHandler.appendToHistory("show vars - Show all variables\n");
+         ioHandler.appendToHistory("clear vars - Clear all variables\n\n");
+         ioHandler.appendToHistory("undo - Remove the last drawn shape (or Ctrl+Z)\n");
+         
+         ioHandler.appendToHistory("fill on / fill off - Toggle fill mode for shapes\n");
+         ioHandler.appendToHistory("clear - Clear all shapes from the screen\n");
+         
+         // NEW: Interpreter commands
+         ioHandler.appendToHistory("\n=== INTERPRETER COMMANDS ===\n");
+         ioHandler.appendToHistory("integer var = value; - Declare and assign integer variable\n");
+         ioHandler.appendToHistory("input(var); - Get user input for variable\n");
+         ioHandler.appendToHistory("print(var); - Print variable value\n");
+         ioHandler.appendToHistory("if(condition): command - Conditional execution\n");
+         ioHandler.appendToHistory(" Example: if(x==10): print(x);\n");
+         
+         ioHandler.appendToHistory("\n=== ANIMATION COMMANDS ===\n");
+         ioHandler.appendToHistory("animation <name> - Create a new animation\n");
+         ioHandler.appendToHistory("keyframe <name> - Capture current shapes as a keyframe\n");
+         ioHandler.appendToHistory("play <animationName> - Play the specified animation\n");
+         ioHandler.appendToHistory("stop - Stop the current animation\n");
+         ioHandler.appendToHistory("delay <ms> - Set frame delay in milliseconds\n");
+         
+         ioHandler.appendToHistory("\n=== ENCODING COMMANDS ===\n");
+         ioHandler.appendToHistory("Click 'Encoding: ON' button to enable encoding mode\n");
+         ioHandler.appendToHistory("show encoding - Display current encoding state\n");
+         ioHandler.appendToHistory("clear encoding - Clear encoding tables\n");
+         ioHandler.appendToHistory("In encoding mode, all commands are automatically encoded\n");
+     }
+ 
 
-    // ... (Keep all your existing methods like processForLoop, processCommand, etc. unchanged)
-    // Just make sure to include all the existing methods from your original code here
-
+   
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new UserInterface3());
     }
@@ -1024,61 +1043,63 @@ public class UserInterface3 extends JFrame {
      * PARAMETERS: String command - the command to process
      * RETURN VALUE: None
      ********************************************************************/
-    private void processCommand(String command) {
-        String lowerCommand = command.toLowerCase();
+     private void processCommand(String command) {
+         String lowerCommand = command.toLowerCase();
+         if (lowerCommand.startsWith("circle")) {
+             codeGeneration.processCircleCommand(command, ioHandler);
+         }
+         else if (lowerCommand.startsWith("triangle")) {
+             codeGeneration.processTriangleCommand(command, ioHandler);
+         }
+         else if (lowerCommand.startsWith("rectangle")) {
+             codeGeneration.processRectangleCommand(command, ioHandler);
+         }
+         else if (lowerCommand.startsWith("square")) {
+             codeGeneration.processSquareCommand(command, ioHandler);
+         }
+         else if (lowerCommand.startsWith("points")) {
+             codeGeneration.processPointsCommand(command, ioHandler);
+         }
+         else if (lowerCommand.startsWith("line")) {
+             codeGeneration.processLineCommand(command, ioHandler);
+         }
+         else {
+             ioHandler.appendToHistory("System: Unknown command: " + command + "\n");
+         }
+         drawingPanel.repaint();
+     }
 
-        if (lowerCommand.startsWith("circle")) {
-            codeGeneration.processCircleCommand(command, ioHandler);
-        }
-        else if (lowerCommand.startsWith("triangle")) {
-            codeGeneration.processTriangleCommand(command, ioHandler);
-        }
-        else if (lowerCommand.startsWith("rectangle")) {
-            codeGeneration.processRectangleCommand(command, ioHandler);
-        }
-        else if (lowerCommand.startsWith("square")) {
-            codeGeneration.processSquareCommand(command, ioHandler);
-        }
-        else if (lowerCommand.startsWith("points")) {
-            codeGeneration.processPointsCommand(command, ioHandler);
-        }
-        else {
-            ioHandler.appendToHistory("System: Unknown command: " + command + "\n");
-        }
-
-        drawingPanel.repaint();
-    }
-
-    /********************************************************************
-     * METHOD: processCommandForLoop
-     * DESCRIPTION: Processes a drawing command for loop recording
-     * PARAMETERS: String command - the command to process
-     * RETURN VALUE: None
-     ********************************************************************/
-    private void processCommandForLoop(String command) {
-        String lowerCommand = command.toLowerCase();
-
-        if (lowerCommand.startsWith("circle")) {
-            codeGeneration.processCircleCommandForLoop(command, ioHandler);
-        }
-        else if (lowerCommand.startsWith("triangle")) {
-            codeGeneration.processTriangleCommandForLoop(command, ioHandler);
-        }
-        else if (lowerCommand.startsWith("rectangle")) {
-            codeGeneration.processRectangleCommandForLoop(command, ioHandler);
-        }
-        else if (lowerCommand.startsWith("square")) {
-            codeGeneration.processSquareCommandForLoop(command, ioHandler);
-        }
-        else if (lowerCommand.startsWith("points")) {
-            codeGeneration.processPointsCommandForLoop(command, ioHandler);
-        }
-        else {
-            ioHandler.appendToHistory("System: Unknown command: " + command + "\n");
-        }
-
-        drawingPanel.repaint();
-    }
+     /********************************************************************
+      * METHOD: processCommandForLoop
+      * DESCRIPTION: Processes a drawing command for loop recording
+      * PARAMETERS: String command - the command to process
+      * RETURN VALUE: None
+      ********************************************************************/
+      private void processCommandForLoop(String command) {
+          String lowerCommand = command.toLowerCase();
+          if (lowerCommand.startsWith("circle")) {
+              codeGeneration.processCircleCommandForLoop(command, ioHandler);
+          }
+          else if (lowerCommand.startsWith("triangle")) {
+              codeGeneration.processTriangleCommandForLoop(command, ioHandler);
+          }
+          else if (lowerCommand.startsWith("rectangle")) {
+              codeGeneration.processRectangleCommandForLoop(command, ioHandler);
+          }
+          else if (lowerCommand.startsWith("square")) {
+              codeGeneration.processSquareCommandForLoop(command, ioHandler);
+          }
+          else if (lowerCommand.startsWith("points")) {
+              codeGeneration.processPointsCommandForLoop(command, ioHandler);
+          }
+          else if (lowerCommand.startsWith("line")) {
+              codeGeneration.processLineCommandForLoop(command, ioHandler);
+          }
+          else {
+              ioHandler.appendToHistory("System: Unknown command: " + command + "\n");
+          }
+          drawingPanel.repaint();
+      }
     private void processInterpreterCommand(String text) {
         if (text.startsWith("integer") || text.startsWith("input") || text.startsWith("print")) {
             interpreter.interpretLine(text);

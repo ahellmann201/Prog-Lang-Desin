@@ -24,10 +24,15 @@ public class Interpreter {
     private static final int LEFT_PAREN = 201;
     private static final int RIGHT_PAREN = 202;
     private static final int SEMICOLON = 203;
+    private static final int IF = 103;
+    private static final int LINE = 104;
+    private static final int COMMA = 204;
     
     private String currentOperation = "";
     private String currentVariable = "";
     private int currentValue = 0;
+    private boolean conditionMet = false;
+    private List<String> currentCondition = new ArrayList<>();
     
     public Interpreter(TokenEncoder tokenEncoder, InputOutputHandler3 ioHandler) {
         this.tokenEncoder = tokenEncoder;
@@ -102,30 +107,52 @@ public class Interpreter {
     private List<String> tokenizeLine(String line) {
         List<String> tokens = new ArrayList<>();
         StringBuilder currentToken = new StringBuilder();
-        
+
         for (int i = 0; i < line.length(); i++) {
             char c = line.charAt(i);
-            
+
             if (Character.isWhitespace(c)) {
                 if (currentToken.length() > 0) {
                     tokens.add(currentToken.toString());
                     currentToken.setLength(0);
                 }
-            } else if (c == ',' || c == '(' || c == ')' || c == '=' || c == ';' || c == '#') {
+            } else if (c == ',' || c == '(' || c == ')' || c == '=' || c == ';' || c == '<' || c == '>' || c == '!') {
+                // Handle multi-character operators
                 if (currentToken.length() > 0) {
                     tokens.add(currentToken.toString());
                     currentToken.setLength(0);
                 }
-                tokens.add(String.valueOf(c));
+                
+                // Check for double character operators
+                if (i + 1 < line.length()) {
+                    char nextChar = line.charAt(i + 1);
+                    if (c == '=' && nextChar == '=') {
+                        tokens.add("==");
+                        i++; // Skip next character
+                    } else if (c == '!' && nextChar == '=') {
+                        tokens.add("!=");
+                        i++; // Skip next character
+                    } else if (c == '<' && nextChar == '=') {
+                        tokens.add("<=");
+                        i++; // Skip next character
+                    } else if (c == '>' && nextChar == '=') {
+                        tokens.add(">=");
+                        i++; // Skip next character
+                    } else {
+                        tokens.add(String.valueOf(c));
+                    }
+                } else {
+                    tokens.add(String.valueOf(c));
+                }
             } else {
                 currentToken.append(c);
             }
         }
-        
+
         if (currentToken.length() > 0) {
             tokens.add(currentToken.toString());
         }
-        
+
         return tokens;
     }
     
@@ -176,6 +203,12 @@ public class Interpreter {
             case PRINT:
                 if (nextToken == LEFT_PAREN) return "start_print";
                 break;
+            case IF:
+                if (nextToken == LEFT_PAREN) return "start_if";
+                break;
+            case LINE:
+                if (nextToken == LEFT_PAREN) return "start_line";
+                break;
             case ASSIGN:
                 if (nextToken == SEMICOLON) return "end_define";
                 break;
@@ -184,7 +217,12 @@ public class Interpreter {
                 break;
             case RIGHT_PAREN:
                 if (nextToken == SEMICOLON) return "no_op";
+                if (nextToken == COMMA) return "continue_params";
                 break;
+            case COMMA:
+                if (nextToken == RIGHT_PAREN) return "end_paren";
+                if (nextToken == SEMICOLON) return "no_op";
+                return "continue_params";
             case SEMICOLON:
                 return "no_op";
         }
@@ -201,7 +239,7 @@ public class Interpreter {
      ***********************************************************************/
     private void executeCodeGenerator(String codeGenerator, List<String> tokens, int index) {
         if (codeGenerator == null) return;
-        
+
         switch (codeGenerator) {
             case "start_define":
                 startDefine(tokens, index);
@@ -215,8 +253,17 @@ public class Interpreter {
             case "start_print":
                 startPrint();
                 break;
+            case "start_if":
+                startIf();
+                break;
+            case "start_line":
+                startLine();
+                break;
             case "end_paren":
-                endParen(tokens, index);
+                endParent(tokens, index);
+                break;
+            case "continue_params":
+                continueParams(tokens, index);
                 break;
             case "no_op":
                 // Do nothing
@@ -287,18 +334,18 @@ public class Interpreter {
      *             int index - current token index
      * RETURN VALUE: None
      ***********************************************************************/
-    private void endParen(List<String> tokens, int index) {
+    private void endParent(List<String> tokens, int index) {
         if (index - 1 >= 0) {
             String operand = tokens.get(index - 1);
-            
+
             if ("input".equals(currentOperation)) {
                 // Handle Input
-                String inputValue = JOptionPane.showInputDialog("Enter value for " + operand + ":");
+                String inputValue = JOptionPane.showInputDialog("Enter value for " + operand + "");
                 if (inputValue != null) {
                     try {
                         int value = Integer.parseInt(inputValue.trim());
                         variables.put(operand, value);
-                        
+
                         if (verboseMode) {
                             ioHandler.appendToHistory("=> " + value + "\n");
                         } else {
@@ -326,6 +373,34 @@ public class Interpreter {
                 } catch (NumberFormatException e) {
                     ioHandler.appendToHistory("Error: Cannot print " + operand + "\n");
                 }
+            } else if ("if".equals(currentOperation)) {
+                // Handle if condition evaluation
+                if (!operand.equals("(") && !operand.equals(",")) {
+                    currentCondition.add(operand);
+                }
+                
+                conditionMet = evaluateCondition(currentCondition);
+                
+                if (verboseMode) {
+                    ioHandler.appendToHistory("If condition evaluated: " + conditionMet + "\n");
+                    ioHandler.appendToHistory("Condition: " + String.join(" ", currentCondition) + "\n");
+                }
+                
+                // If condition is true, execute the next command
+                if (conditionMet) {
+                    // This would need to be integrated with your command execution system
+                    ioHandler.appendToHistory("If condition TRUE - executing next command\n");
+                } else {
+                    ioHandler.appendToHistory("If condition FALSE - skipping next command\n");
+                }
+            } else if ("line".equals(currentOperation)) {
+                // Handle line drawing
+                if (verboseMode) {
+                    ioHandler.appendToHistory("Line command executed with current parameters\n");
+                }
+                // In practice, you'd call your drawing system here
+                // For now, just log that we'd draw a line
+                ioHandler.appendToHistory("Would draw line with parameters\n");
             }
         }
         resetState();
@@ -341,6 +416,8 @@ public class Interpreter {
         currentOperation = "";
         currentVariable = "";
         currentValue = 0;
+        conditionMet = false;
+        currentCondition.clear();
     }
     
     /***********************************************************************
@@ -362,5 +439,75 @@ public class Interpreter {
     public void clearVariables() {
         variables.clear();
         resetState();
+    }
+    private void startIf() {
+        currentOperation = "if";
+        currentCondition.clear();
+        conditionMet = false;
+        
+        if (verboseMode) {
+            ioHandler.appendToHistory("Starting if statement\n");
+        }
+    }
+
+    private void startLine() {
+        currentOperation = "line";
+        
+        if (verboseMode) {
+            ioHandler.appendToHistory("Starting line command\n");
+        }
+    }
+
+    private void continueParams(List<String> tokens, int index) {
+        if ("if".equals(currentOperation) && index > 0) {
+            // Collect condition tokens
+            String token = tokens.get(index - 1);
+            if (!token.equals("(") && !token.equals(",")) {
+                currentCondition.add(token);
+            }
+        }
+    }
+    private boolean evaluateCondition(List<String> conditionTokens) {
+        if (conditionTokens.size() < 3) return false;
+        
+        try {
+            String leftOperand = conditionTokens.get(0);
+            String operator = conditionTokens.get(1);
+            String rightOperand = conditionTokens.get(2);
+            
+            int leftValue = getValue(leftOperand);
+            int rightValue = getValue(rightOperand);
+            
+            switch (operator) {
+                case "==": return leftValue == rightValue;
+                case "!=": return leftValue != rightValue;
+                case "<": return leftValue < rightValue;
+                case ">": return leftValue > rightValue;
+                case "<=": return leftValue <= rightValue;
+                case ">=": return leftValue >= rightValue;
+                default: return false;
+            }
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private int getValue(String operand) {
+        if (Character.isDigit(operand.charAt(0))) {
+            return Integer.parseInt(operand);
+        } else {
+            return variables.getOrDefault(operand, 0);
+        }
+    }
+    
+
+    private void drawLineFromParameters() {
+        // This method would extract parameters and call your drawing system
+        // For now, just log that we'd draw a line
+        if (verboseMode) {
+            ioHandler.appendToHistory("Would draw line with current parameters\n");
+        }
+        // In your actual implementation, you'd call something like:
+        // drawingSystem.drawLine(x1, y1, x2, y2);
     }
 }

@@ -160,33 +160,7 @@ public class CodeGeneration3 {
         }
     }
 
-    /************************************************************************************
-    *    METHOD:    cloneShape                                                         *
-    *    DESCRIPTION:    Creates a deep copy of a shape                               *
-    *    PARAMETERS:    Shape shape - shape to clone                                  *
-    *    RETURN VALUE:    Shape - cloned shape                                        *
-    ************************************************************************************/
-    private Shape cloneShape(Shape shape) {
-        if (shape instanceof Circle) {
-            Circle circle = (Circle) shape;
-            return new Circle(circle.x, circle.y, circle.radius, circle.filled);
-        } else if (shape instanceof Triangle) {
-            Triangle triangle = (Triangle) shape;
-            return new Triangle(triangle.x1, triangle.y1, triangle.x2, triangle.y2, 
-                               triangle.x3, triangle.y3, triangle.filled);
-        } else if (shape instanceof Rectangle) {
-            Rectangle rect = (Rectangle) shape;
-            return new Rectangle(rect.x1, rect.y1, rect.x2, rect.y2, rect.filled);
-        } else if (shape instanceof Square) {
-            Square square = (Square) shape;
-            return new Square(square.x, square.y, square.size, square.filled);
-        } else if (shape instanceof Polygon) {
-            Polygon polygon = (Polygon) shape;
-            List<Point> pointsCopy = new ArrayList<>(polygon.points);
-            return new Polygon(pointsCopy, polygon.filled);
-        }
-        return null;
-    }
+    
     /************************************************************************************
     *    METHOD:    processTriangleCommand    											*
     *    DESCRIPTION:    Processes a triangle drawing command with 3 points    		*
@@ -545,15 +519,7 @@ public class CodeGeneration3 {
         loops.add(new Loop(name, commands));
     }
     
-    /********************************************************
-    *    METHOD:    getLoops    							*
-    *    DESCRIPTION:    Returns the list of all loops    	*
-    *    PARAMETERS:    none    							*
-    *    RETURN VALUE:    List<Loop> - the list of loops    *
-    ********************************************************/
-    public List<Loop> getLoops() {
-        return loops;
-    }
+   
     
     /************************************************************************
     *    METHOD:    clearLoopShapes    										*
@@ -936,33 +902,29 @@ public class CodeGeneration3 {
                 int x = evaluateShapeParameter(Integer.toString(circle.x), variables);
                 int y = evaluateShapeParameter(Integer.toString(circle.y), variables);
                 return new Circle(x, y, radius, circle.filled);
-            } 
-         else if (shape instanceof Triangle) {
-            Triangle triangle = (Triangle) shape;
-            int x1 = evaluateShapeParameter(Integer.toString(triangle.x1), variables);
-            int y1 = evaluateShapeParameter(Integer.toString(triangle.y1), variables);
-            int x2 = evaluateShapeParameter(Integer.toString(triangle.x2), variables);
-            int y2 = evaluateShapeParameter(Integer.toString(triangle.y2), variables);
-            int x3 = evaluateShapeParameter(Integer.toString(triangle.x3), variables);
-            int y3 = evaluateShapeParameter(Integer.toString(triangle.y3), variables);
-            return new Triangle(x1, y1, x2, y2, x3, y3, triangle.filled);
-        }
-            else if (shape instanceof Rectangle) {
+            } else if (shape instanceof Triangle) {
+                Triangle triangle = (Triangle) shape;
+                int x1 = evaluateShapeParameter(Integer.toString(triangle.x1), variables);
+                int y1 = evaluateShapeParameter(Integer.toString(triangle.y1), variables);
+                int x2 = evaluateShapeParameter(Integer.toString(triangle.x2), variables);
+                int y2 = evaluateShapeParameter(Integer.toString(triangle.y2), variables);
+                int x3 = evaluateShapeParameter(Integer.toString(triangle.x3), variables);
+                int y3 = evaluateShapeParameter(Integer.toString(triangle.y3), variables);
+                return new Triangle(x1, y1, x2, y2, x3, y3, triangle.filled);
+            } else if (shape instanceof Rectangle) {
                 Rectangle rectangle = (Rectangle) shape;
                 int x1 = evaluateShapeParameter(Integer.toString(rectangle.x1), variables);
                 int y1 = evaluateShapeParameter(Integer.toString(rectangle.y1), variables);
                 int x2 = evaluateShapeParameter(Integer.toString(rectangle.x2), variables);
                 int y2 = evaluateShapeParameter(Integer.toString(rectangle.y2), variables);
                 return new Rectangle(x1, y1, x2, y2, rectangle.filled);
-            } 
-            else if (shape instanceof Square) {
+            } else if (shape instanceof Square) {
                 Square square = (Square) shape;
                 int x = evaluateShapeParameter(Integer.toString(square.x), variables);
                 int y = evaluateShapeParameter(Integer.toString(square.y), variables);
                 int size = evaluateShapeParameter(Integer.toString(square.size), variables);
                 return new Square(x, y, size, square.filled);
-            } 
-            else if (shape instanceof Polygon) {
+            } else if (shape instanceof Polygon) {
                 Polygon polygon = (Polygon) shape;
                 List<Point> evaluatedPoints = new ArrayList<>();
                 for (Point point : polygon.points) {
@@ -971,274 +933,336 @@ public class CodeGeneration3 {
                     evaluatedPoints.add(new Point(x, y));
                 }
                 return new Polygon(evaluatedPoints, polygon.filled);
+            } else if (shape instanceof Line) {
+                Line line = (Line) shape;
+                int x1 = evaluateShapeParameter(Integer.toString(line.x1), variables);
+                int y1 = evaluateShapeParameter(Integer.toString(line.y1), variables);
+                int x2 = evaluateShapeParameter(Integer.toString(line.x2), variables);
+                int y2 = evaluateShapeParameter(Integer.toString(line.y2), variables);
+                return new Line(x1, y1, x2, y2);
             }
             
             return shape; // Return original shape if type not recognized
         }
-        
-        
-        
-        
-        
-        
-        
-        
-        
-    }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    /****************************************************************
-    *    CLASS:    Loop    											*
-    *    DESCRIPTION:    Represents a recorded loop of commands    	*
-    ****************************************************************/
-    class Loop {
-        String name;
-        List<String> commands;
-        
-        Loop(String name, List<String> commands) {
-            this.name = name;
-            this.commands = commands;
-        }
-        
-        public String getName() {
-            return name;
-        }
-        
-        public List<String> getCommands() {
-            return commands;
-        }
-        
-        // Add these methods to the Loop class
-        public boolean isRecordingLoop() {
-            // This method might not be needed for the Loop class itself
-            // since the recording state is managed by the parent CodeGeneration class
-            return false;
-        }
-
-        public void endLoopRecording(String name) {
-            // This method should probably be in the parent class only
-        }
-
-        public void playLoop(String name, DrawingPanel panel, InputOutputHandler3 ioHandler) {
-            // This method should probably be in the parent class only
-        }
     }
         
-        /****************************************************
-        *    METHOD:    getName    							*
-        *    DESCRIPTION:    Returns the name of the loop   *
-        *    PARAMETERS:    none    						*
-        *    RETURN VALUE:    String - the name of the loop *
-        ****************************************************/
-        public String getName() {
-            return getName();
-        }
         
-        /************************************************************
-        *    METHOD:    getCommands    								*
-        *    DESCRIPTION:    Returns the commands in the loop    	*
-        *    PARAMETERS:    none    								*
-        *    RETURN VALUE:    List<String> - the list of commands   *
-        ************************************************************/
-        public List<String> getCommands() {
-            return getCommands();
-        }
         /************************************************************************************
-        *    METHOD:    startLoopRecording    												*
-        *    DESCRIPTION:    Initiates loop recording mode    								*
-        *    PARAMETERS:    ioHandler - the input/output handler for displaying messages    *
-        *    RETURN VALUE:    none    														*
-        ************************************************************************************/
-        public void startLoopRecording(InputOutputHandler3 ioHandler) {
-            loopShapes.clear();
-            isRecordingLoop = true;
-            ioHandler.appendToHistory("System: Loop recording started. All shapes will be added to the loop.\n");
-        }
+         *    METHOD:    processLineCommand                                                                                            *
+         *    DESCRIPTION:    Processes a line drawing command                                                              *
+         *    PARAMETERS:    command - the command string containing line parameters              *
+         *    RETURN VALUE:    none                                                                                                                    *
+         ************************************************************************************/
+         public void processLineCommand(String command, InputOutputHandler3 ioHandler) {
+             saveState();
+             java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("line\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
+             java.util.regex.Matcher matcher = pattern.matcher(command);
+             
+             if (matcher.find()) {
+                 try {
+                     int x1 = ioHandler.parseValue(matcher.group(1).trim());
+                     int y1 = ioHandler.parseValue(matcher.group(2).trim());
+                     int x2 = ioHandler.parseValue(matcher.group(3).trim());
+                     int y2 = ioHandler.parseValue(matcher.group(4).trim());
+                     
+                     if (isRecordingLoop) {
+                         loopShapes.add(new Line(x1, y1, x2, y2));
+                         ioHandler.appendToHistory("System: Line added to loop from (" + x1 + ", " + y1 + ") to (" + x2 + ", " + y2 + ")\n");
+                     } else {
+                         shapes.add(new Line(x1, y1, x2, y2));
+                         ioHandler.appendToHistory("System: Line drawn from (" + x1 + ", " + y1 + ") to (" + x2 + ", " + y2 + ")\n");
+                     }
+                 } catch (NumberFormatException e) {
+                     ioHandler.appendToHistory("System: Invalid numbers in line command. Use: line, x1, y1, x2, y2\n");
+                 }
+             } else {
+                 ioHandler.appendToHistory("System: Invalid line command format. Use: line, x1, y1, x2, y2\n");
+             }
+         }
+         
+         /************************************************************************************
+         *    METHOD:    processLineCommandForLoop                                                                                    *
+         *    DESCRIPTION:    Processes a line command for loop recording                                    *
+         *    PARAMETERS:    command - the command string containing line parameters              *
+         *    RETURN VALUE:    none                                                                                                                    *
+         *************************************************************************************/
+         public void processLineCommandForLoop(String command, InputOutputHandler3 ioHandler) {
+             saveState();
+             java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("line\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)\\s*,\\s*([^,]+)", java.util.regex.Pattern.CASE_INSENSITIVE);
+             java.util.regex.Matcher matcher = pattern.matcher(command);
+             
+             if (matcher.find()) {
+                 try {
+                     int x1 = ioHandler.parseValue(matcher.group(1).trim());
+                     int y1 = ioHandler.parseValue(matcher.group(2).trim());
+                     int x2 = ioHandler.parseValue(matcher.group(3).trim());
+                     int y2 = ioHandler.parseValue(matcher.group(4).trim());
+                     
+                     loopShapes.add(new Line(x1, y1, x2, y2));
+                     ioHandler.appendToHistory("System: Line added to loop from (" + x1 + ", " + y1 + ") to (" + x2 + ", " + y2 + ")\n");
+                 } catch (NumberFormatException e) {
+                     ioHandler.appendToHistory("System: Invalid numbers in line command. Use: line, x1, y1, x2, y2\n");
+                 }
+             } else {
+                 ioHandler.appendToHistory("System: Invalid line command format. Use: line, x1, y1, x2, y2\n");
+             }
+         }
+         
+         /****************************************************
+         *    CLASS:    Line                                                            *
+         *    DESCRIPTION:    Represents a line shape            *
+         ****************************************************/
+         class Line extends Shape {
+             int x1, y1, x2, y2;
+             
+             Line(int x1, int y1, int x2, int y2) {
+                 super(false); // Lines are never filled
+                 this.x1 = x1;
+                 this.y1 = y1;
+                 this.x2 = x2;
+                 this.y2 = y2;
+             }
+             
+             @Override
+             void draw(Graphics g) {
+                 g.setColor(Color.BLACK);
+                 g.drawLine(x1, y1, x2, y2);
+             }
+         }
+         
+         // Update the cloneShape method to handle Line objects
+         private Shape cloneShape(Shape shape) {
+             if (shape instanceof Circle) {
+                 Circle circle = (Circle) shape;
+                 return new Circle(circle.x, circle.y, circle.radius, circle.filled);
+             } else if (shape instanceof Triangle) {
+                 Triangle triangle = (Triangle) shape;
+                 return new Triangle(triangle.x1, triangle.y1, triangle.x2, triangle.y2,
+                                   triangle.x3, triangle.y3, triangle.filled);
+             } else if (shape instanceof Rectangle) {
+                 Rectangle rect = (Rectangle) shape;
+                 return new Rectangle(rect.x1, rect.y1, rect.x2, rect.y2, rect.filled);
+             } else if (shape instanceof Square) {
+                 Square square = (Square) shape;
+                 return new Square(square.x, square.y, square.size, square.filled);
+             } else if (shape instanceof Polygon) {
+                 Polygon polygon = (Polygon) shape;
+                 List<Point> pointsCopy = new ArrayList<>(polygon.points);
+                 return new Polygon(pointsCopy, polygon.filled);
+             } else if (shape instanceof Line) {
+                 Line line = (Line) shape;
+                 return new Line(line.x1, line.y1, line.x2, line.y2);
+             }
+             return null;
+         }
+         
+        
+        
+        
+         /************************************************************************************
+          *    METHOD:    startLoopRecording                                                 *
+          *    DESCRIPTION:    Initiates loop recording mode                                 *
+          *    PARAMETERS:    ioHandler - the input/output handler for displaying messages    *
+          *    RETURN VALUE:    none                                                        *
+          ************************************************************************************/
+          public void startLoopRecording(InputOutputHandler3 ioHandler) {
+              loopShapes.clear();
+              isRecordingLoop = true;
+              ioHandler.appendToHistory("System: Loop recording started. All shapes will be added to the loop.\n");
+          }
 
-        /****************************************************************************
-        *    METHOD:    isRecordingLoop    											*
-        *    DESCRIPTION:    Checks if loop recording is active    					*
-        *    PARAMETERS:    none    												*
-        *    RETURN VALUE:    boolean - true if recording loop, false otherwise    	*
-        ****************************************************************************/
-        public boolean isRecordingLoop() {
-            return isRecordingLoop;
-        }
+          /****************************************************************************
+          *    METHOD:    isRecordingLoop                                            *
+          *    DESCRIPTION:    Checks if loop recording is active                    *
+          *    PARAMETERS:    none                                                    *
+          *    RETURN VALUE:    boolean - true if recording loop, false otherwise    *
+          ****************************************************************************/
+          public boolean isRecordingLoop() {
+              return isRecordingLoop;
+          }
 
-        /****************************************************************************************
-        *    METHOD:    endLoopRecording   														*
-        *    DESCRIPTION:    Saves the current loop with the given name    						*
-        *    PARAMETERS:    name - the name of the loop, ioHandler - for displaying messages    *
-        *    RETURN VALUE:    none    															*
-        ****************************************************************************************/
-        public void endLoopRecording(String name, InputOutputHandler3 ioHandler) {
-            if (isRecordingLoop && !loopShapes.isEmpty()) {
-                // Convert the loop shapes to commands for storage
-                List<String> commands = new ArrayList<>();
-                
-                for (Shape shape : loopShapes) {
-                    if (shape instanceof Circle) {
-                        Circle circle = (Circle) shape;
-                        commands.add("circle, " + circle.radius + ", " + circle.x + ", " + circle.y);
-                    } else if (shape instanceof Triangle) {
-                        Triangle triangle = (Triangle) shape;
-                        commands.add("triangle, " + triangle.x1 + ", " + triangle.y1 + ", " + 
-                                                 triangle.x2 + ", " + triangle.y2 + ", " + 
-                                                 triangle.x3 + ", " + triangle.y3);
-                    } else if (shape instanceof Rectangle) {
-                        Rectangle rectangle = (Rectangle) shape;
-                        commands.add("rectangle, " + rectangle.x1 + ", " + rectangle.y1 + ", " + 
-                                    rectangle.x2 + ", " + rectangle.y2);
-                    } else if (shape instanceof Square) {
-                        Square square = (Square) shape;
-                        commands.add("square, " + square.x + ", " + square.y + ", " + square.size);
-                    } else if (shape instanceof Polygon) {
-                        Polygon polygon = (Polygon) shape;
-                        StringBuilder pointsCommand = new StringBuilder("points");
-                        for (Point point : polygon.points) {
-                            pointsCommand.append(", ").append(point.x).append(",").append(point.y);
-                        }
-                        commands.add(pointsCommand.toString());
-                    }
-                }
-                
-                // Add the loop to the loops list
-                loops.add(new Loop(name, commands));
-                
-                // Clear the temporary loop shapes and reset recording state
-                loopShapes.clear();
-                isRecordingLoop = false;
-                
-                ioHandler.appendToHistory("System: Loop '" + name + "' saved with " + commands.size() + " commands\n");
-            } else {
-                ioHandler.appendToHistory("System: No loop recording in progress or no shapes recorded\n");
-            }
-        }
-        /****************************************************************************************
-         *    METHOD:    endLoopRecording    													*
-         *    DESCRIPTION:    Saves the current loop with the given name    					*
-         *    PARAMETERS:    name - the name of the loop, ioHandler - for displaying messages   *
-         *    RETURN VALUE:    none    															*
-         ***************************************************************************************/
-        public void playLoop(String name, DrawingPanel panel, InputOutputHandler3 ioHandler) {
-            // Play back the loop with the given name
-            Loop targetLoop = null;
-            
-            // Find the loop with the specified name
-            for (Loop loop : loops) {
-                if (loop.getName().equalsIgnoreCase(name)) {
-                    targetLoop = loop;
-                    break;
-                }
-            }
-            
-            if (targetLoop != null) {
-                ioHandler.appendToHistory("System: Playing loop '" + name + "'\n");
-                
-                // Execute each command in the loop
-                for (String command : targetLoop.getCommands()) {
-                    String lowerCommand = command.toLowerCase().trim();
-                    
-                    if (lowerCommand.startsWith("circle")) {
-                        processCircleCommand(command, ioHandler);
-                    } else if (lowerCommand.startsWith("triangle")) {
-                        processTriangleCommand(command, ioHandler);
-                    } else if (lowerCommand.startsWith("rectangle")) {
-                        processRectangleCommand(command, ioHandler);
-                    } else if (lowerCommand.startsWith("square")) {
-                        processSquareCommand(command, ioHandler);
-                    } else if (lowerCommand.startsWith("points")) {
-                        processPointsCommand(command, ioHandler);
-                    }
-                }
-                
-                // Repaint the panel to show the drawn shapes
-                panel.repaint();
-            } else {
-                ioHandler.appendToHistory("System: Loop '" + name + "' not found\n");
-            }
-        }
-        
-        /************************************************************************************
-        *    METHOD:    clearScreen    														*
-        *    DESCRIPTION:    Clears all shapes from the drawing screen    					*
-        *    PARAMETERS:    ioHandler - the input/output handler for displaying messages    *
-        *    RETURN VALUE:    none    														*
-        ************************************************************************************/
-        public void clearScreen(InputOutputHandler3 ioHandler) {
-        	 saveState();
-            shapes.clear();
-            polygonPoints.clear();
-            loopShapes.clear();
-            ioHandler.appendToHistory("System: Screen cleared - all shapes removed\n");
-        }
-        
-        /************************************************************************************
-        *    METHOD:    evaluateMathExpression    											*
-        *    DESCRIPTION:    Evaluates mathematical expressions in commands    			*
-        *    PARAMETERS:    expression - the mathematical expression string    			*
-        *    RETURN VALUE:    int - the result of the evaluation    						*
-        ************************************************************************************/
-        public int evaluateMathExpression(String expression) {
-            try {
-                // Remove any whitespace
-                expression = expression.replaceAll("\\s+", "");
-                
-                // Handle simple arithmetic operations
-                if (expression.contains("+")) {
-                    String[] parts = expression.split("\\+");
-                    int sum = 0;
-                    for (String part : parts) {
-                        sum += Integer.parseInt(part);
-                    }
-                    return sum;
-                } else if (expression.contains("-")) {
-                    String[] parts = expression.split("-");
-                    int result = Integer.parseInt(parts[0]);
-                    for (int i = 1; i < parts.length; i++) {
-                        result -= Integer.parseInt(parts[i]);
-                    }
-                    return result;
-                } else if (expression.contains("*")) {
-                    String[] parts = expression.split("\\*");
-                    int product = 1;
-                    for (String part : parts) {
-                        product *= Integer.parseInt(part);
-                    }
-                    return product;
-                } else if (expression.contains("/")) {
-                    String[] parts = expression.split("/");
-                    int result = Integer.parseInt(parts[0]);
-                    for (int i = 1; i < parts.length; i++) {
-                        result /= Integer.parseInt(parts[i]);
-                    }
-                    return result;
-                } else {
-                    // No operators found, just parse the number
-                    return Integer.parseInt(expression);
-                }
-            } catch (NumberFormatException e) {
-                return 0; // Return 0 if parsing fails
-            }
-        }
-        
-        
-        
-    }
+          /****************************************************************************************
+          *    METHOD:    endLoopRecording                                                        *
+          *    DESCRIPTION:    Saves the current loop with the given name                        *
+          *    PARAMETERS:    name - the name of the loop, ioHandler - for displaying messages    *
+          *    RETURN VALUE:    none                                                            *
+          ****************************************************************************************/
+          public void endLoopRecording(String name, InputOutputHandler3 ioHandler) {
+              if (isRecordingLoop && !loopShapes.isEmpty()) {
+                  // Convert the loop shapes to commands for storage
+                  List<String> commands = new ArrayList<>();
+                  
+                  for (Shape shape : loopShapes) {
+                      if (shape instanceof Circle) {
+                          Circle circle = (Circle) shape;
+                          commands.add("circle, " + circle.radius + ", " + circle.x + ", " + circle.y);
+                      } else if (shape instanceof Triangle) {
+                          Triangle triangle = (Triangle) shape;
+                          commands.add("triangle, " + triangle.x1 + ", " + triangle.y1 + ", " + 
+                                                   triangle.x2 + ", " + triangle.y2 + ", " + 
+                                                   triangle.x3 + ", " + triangle.y3);
+                      } else if (shape instanceof Rectangle) {
+                          Rectangle rectangle = (Rectangle) shape;
+                          commands.add("rectangle, " + rectangle.x1 + ", " + rectangle.y1 + ", " + 
+                                      rectangle.x2 + ", " + rectangle.y2);
+                      } else if (shape instanceof Square) {
+                          Square square = (Square) shape;
+                          commands.add("square, " + square.x + ", " + square.y + ", " + square.size);
+                      } else if (shape instanceof Polygon) {
+                          Polygon polygon = (Polygon) shape;
+                          StringBuilder pointsCommand = new StringBuilder("points");
+                          for (Point point : polygon.points) {
+                              pointsCommand.append(", ").append(point.x).append(",").append(point.y);
+                          }
+                          commands.add(pointsCommand.toString());
+                      } else if (shape instanceof Line) {
+                          Line line = (Line) shape;
+                          commands.add("line, " + line.x1 + ", " + line.y1 + ", " + line.x2 + ", " + line.y2);
+                      }
+                  }
+                  
+                  // Add the loop to the loops list using the external Loop class
+                  loops.add(new Loop(name, commands));
+                  
+                  // Clear the temporary loop shapes and reset recording state
+                  loopShapes.clear();
+                  isRecordingLoop = false;
+                  
+                  ioHandler.appendToHistory("System: Loop '" + name + "' saved with " + commands.size() + " commands\n");
+              } else {
+                  ioHandler.appendToHistory("System: No loop recording in progress or no shapes recorded\n");
+              }
+          }
+
+          /****************************************************************************************
+          *    METHOD:    playLoop                                                                *
+          *    DESCRIPTION:    Plays the specified loop by name                                    *
+          *    PARAMETERS:    name - loop name, panel - drawing panel, ioHandler - IO handler    *
+          *    RETURN VALUE:    none                                                            *
+          ****************************************************************************************/
+          public void playLoop(String name, DrawingPanel panel, InputOutputHandler3 ioHandler) {
+              // Play back the loop with the given name
+              Loop targetLoop = null;
+              
+              // Find the loop with the specified name
+              for (Loop loop : loops) {
+                  if (loop.getName().equalsIgnoreCase(name)) {
+                      targetLoop = loop;
+                      break;
+                  }
+              }
+              
+              if (targetLoop != null) {
+                  ioHandler.appendToHistory("System: Playing loop '" + name + "'\n");
+                  
+                  // Execute each command in the loop
+                  for (String command : targetLoop.getCommands()) {
+                      String lowerCommand = command.toLowerCase().trim();
+                      
+                      if (lowerCommand.startsWith("circle")) {
+                          processCircleCommand(command, ioHandler);
+                      } else if (lowerCommand.startsWith("triangle")) {
+                          processTriangleCommand(command, ioHandler);
+                      } else if (lowerCommand.startsWith("rectangle")) {
+                          processRectangleCommand(command, ioHandler);
+                      } else if (lowerCommand.startsWith("square")) {
+                          processSquareCommand(command, ioHandler);
+                      } else if (lowerCommand.startsWith("points")) {
+                          processPointsCommand(command, ioHandler);
+                      } else if (lowerCommand.startsWith("line")) {
+                          processLineCommand(command, ioHandler);
+                      }
+                  }
+                  
+                  // Repaint the panel to show the drawn shapes
+                  panel.repaint();
+              } else {
+                  ioHandler.appendToHistory("System: Loop '" + name + "' not found\n");
+              }
+          }
+
+          /****************************************************************
+          *    METHOD:    getLoops                                        *
+          *    DESCRIPTION:    Returns the list of all loops            *
+          *    PARAMETERS:    none                                        *
+          *    RETURN VALUE:    List<Loop> - the list of loops            *
+          ****************************************************************/
+          public List<Loop> getLoops() {
+              return new ArrayList<>(loops); // Return a copy to avoid external modification
+          }
+
+          /****************************************************************
+          *    METHOD:    clearLoops                                    *
+          *    DESCRIPTION:    Clears all loops                        *
+          *    PARAMETERS:    none                                        *
+          *    RETURN VALUE:    none                                    *
+          ****************************************************************/
+          public void clearLoops() {
+              loops.clear();
+          }
+          /************************************************************************************
+           *    METHOD:    clearScreen                                                        *
+           *    DESCRIPTION:    Clears all shapes from the drawing screen                    *
+           *    PARAMETERS:    ioHandler - the input/output handler for displaying messages    *
+           *    RETURN VALUE:    none                                                        *
+           ************************************************************************************/
+           public void clearScreen(InputOutputHandler3 ioHandler) {
+               saveState();
+               shapes.clear();
+               polygonPoints.clear();
+               loopShapes.clear();
+               ioHandler.appendToHistory("System: Screen cleared - all shapes removed\n");
+           }
+           
+           /************************************************************************************
+           *    METHOD:    evaluateMathExpression                                            *
+           *    DESCRIPTION:    Evaluates mathematical expressions in commands                *
+           *    PARAMETERS:    expression - the mathematical expression string                *
+           *    RETURN VALUE:    int - the result of the evaluation                            *
+           ************************************************************************************/
+           public int evaluateMathExpression(String expression) {
+               try {
+                   // Remove any whitespace
+                   expression = expression.replaceAll("\\s+", "");
+                   
+                   // Handle simple arithmetic operations
+                   if (expression.contains("+")) {
+                       String[] parts = expression.split("\\+");
+                       int sum = 0;
+                       for (String part : parts) {
+                           sum += Integer.parseInt(part);
+                       }
+                       return sum;
+                   } else if (expression.contains("-")) {
+                       String[] parts = expression.split("-");
+                       int result = Integer.parseInt(parts[0]);
+                       for (int i = 1; i < parts.length; i++) {
+                           result -= Integer.parseInt(parts[i]);
+                       }
+                       return result;
+                   } else if (expression.contains("*")) {
+                       String[] parts = expression.split("\\*");
+                       int product = 1;
+                       for (String part : parts) {
+                           product *= Integer.parseInt(part);
+                       }
+                       return product;
+                   } else if (expression.contains("/")) {
+                       String[] parts = expression.split("/");
+                       int result = Integer.parseInt(parts[0]);
+                       for (int i = 1; i < parts.length; i++) {
+                           result /= Integer.parseInt(parts[i]);
+                       }
+                       return result;
+                   } else {
+                       // No operators found, just parse the number
+                       return Integer.parseInt(expression);
+                   }
+               } catch (NumberFormatException e) {
+                   return 0; // Return 0 if parsing fails
+               }
+           }
+       }
+    
+    
+    
