@@ -4,6 +4,7 @@ import javax.swing.text.BadLocationException;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +39,7 @@ public class UserInterface3 extends JFrame {
     private AnimationSystem animationSystem;
     private TokenEncoder tokenEncoder;
     private Interpreter interpreter;
+    private FileManager fileManager; // Modern file manager
     private JToggleButton interpreterModeButton;
 
     private JToggleButton fillButton;
@@ -73,6 +75,7 @@ public class UserInterface3 extends JFrame {
         animationSystem = new AnimationSystem(this);
         tokenEncoder = new TokenEncoder();
         interpreter = new Interpreter(tokenEncoder, ioHandler);
+        fileManager = new FileManager(this); // Modern file manager
         
         // Create components
         createUIComponents();
@@ -201,15 +204,60 @@ public class UserInterface3 extends JFrame {
         
         // File menu
         JMenu fileMenu = new JMenu("File");
-        JMenuItem loadFileItem = new JMenuItem("Load File");
-        JMenuItem saveCodeItem = new JMenuItem("Save Code");
-        loadFileItem.addActionListener(e -> {
-            FileReader3 fileReader = new FileReader3(this);
-            fileReader.readFile();
+        JMenuItem newFileItem = new JMenuItem("New");
+        JMenuItem openFileItem = new JMenuItem("Open...");
+        JMenuItem saveFileItem = new JMenuItem("Save");
+        JMenuItem saveAsItem = new JMenuItem("Save As...");
+        
+        // Add Recent Files submenu from FileManager
+        JMenu recentFilesMenu = fileManager.getRecentFilesMenu();
+        
+        newFileItem.addActionListener(e -> {
+            inputArea.setText("");
+            updateLineNumbers();
+            ioHandler.appendToHistory("System: New file created\n");
         });
-        saveCodeItem.addActionListener(e -> saveCodeToFile());
-        fileMenu.add(loadFileItem);
-        fileMenu.add(saveCodeItem);
+        
+        openFileItem.addActionListener(e -> {
+            String content = fileManager.openFileWithRecentMenu(); // Use enhanced file dialog
+            if (content != null) {
+                inputArea.setText(content);
+                updateLineNumbers();
+                ioHandler.appendToHistory("System: File loaded into editor\n");
+            }
+        });
+        
+        saveFileItem.addActionListener(e -> {
+            String content = inputArea.getText();
+            if (!content.trim().isEmpty()) {
+                File savedFile = fileManager.saveFile(content);
+                if (savedFile != null) {
+                    ioHandler.appendToHistory("System: File saved: " + savedFile.getName() + "\n");
+                }
+            } else {
+                ioHandler.appendToHistory("System: No content to save\n");
+            }
+        });
+        
+        saveAsItem.addActionListener(e -> {
+            String content = inputArea.getText();
+            if (!content.trim().isEmpty()) {
+                String defaultName = "program.draw";
+                File savedFile = fileManager.saveFileAs(content, defaultName);
+                if (savedFile != null) {
+                    ioHandler.appendToHistory("System: File saved as: " + savedFile.getName() + "\n");
+                }
+            } else {
+                ioHandler.appendToHistory("System: No content to save\n");
+            }
+        });
+        
+        fileMenu.add(newFileItem);
+        fileMenu.add(openFileItem);
+        fileMenu.add(recentFilesMenu); // Add recent files menu
+        fileMenu.addSeparator();
+        fileMenu.add(saveFileItem);
+        fileMenu.add(saveAsItem);
         
         // Edit menu
         JMenu editMenu = new JMenu("Edit");
@@ -438,6 +486,14 @@ public class UserInterface3 extends JFrame {
                     e.consume();
                 } else if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_PERIOD) {
                     stopProgram(); // Ctrl+. to stop
+                    e.consume();
+                } else if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_N) {
+                    inputArea.setText("");
+                    updateLineNumbers();
+                    ioHandler.appendToHistory("System: New file created\n");
+                    e.consume();
+                } else if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_O) {
+                    openFile();
                     e.consume();
                 }
             }
@@ -1019,23 +1075,34 @@ public class UserInterface3 extends JFrame {
     
     /********************************************************************
      * METHOD: saveCodeToFile
-     * DESCRIPTION: Saves the current code to a file
+     * DESCRIPTION: Saves the current code to a file using FileManager
      * PARAMETERS: None
      * RETURN VALUE: None
      ********************************************************************/
     private void saveCodeToFile() {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Save Code");
-        fileChooser.setSelectedFile(new java.io.File("program.txt"));
-        
-        int result = fileChooser.showSaveDialog(this);
-        if (result == JFileChooser.APPROVE_OPTION) {
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileChooser.getSelectedFile()))) {
-                writer.write(inputArea.getText());
-                ioHandler.appendToHistory("System: Code saved to " + fileChooser.getSelectedFile().getName() + "\n");
-            } catch (Exception e) {
-                ioHandler.appendToHistory("System: Error saving file: " + e.getMessage() + "\n");
+        String content = inputArea.getText();
+        if (!content.trim().isEmpty()) {
+            File savedFile = fileManager.saveFile(content);
+            if (savedFile != null) {
+                ioHandler.appendToHistory("System: Code saved to " + savedFile.getName() + "\n");
             }
+        } else {
+            ioHandler.appendToHistory("System: No code to save\n");
+        }
+    }
+    
+    /********************************************************************
+     * METHOD: openFile
+     * DESCRIPTION: Opens a file using FileManager
+     * PARAMETERS: None
+     * RETURN VALUE: None
+     ********************************************************************/
+    private void openFile() {
+        String content = fileManager.openFileWithRecentMenu();
+        if (content != null) {
+            inputArea.setText(content);
+            updateLineNumbers();
+            ioHandler.appendToHistory("System: File loaded into editor\n");
         }
     }
     
@@ -1105,6 +1172,12 @@ public class UserInterface3 extends JFrame {
         ioHandler.appendToHistory("Write your program in the code editor below, then click 'Execute Code'.\n");
         ioHandler.appendToHistory("Or use Ctrl+Enter to execute, Ctrl+. to stop.\n\n");
         
+        ioHandler.appendToHistory("FILE OPERATIONS:\n");
+        ioHandler.appendToHistory("Ctrl+N - New file\n");
+        ioHandler.appendToHistory("Ctrl+O - Open file\n");
+        ioHandler.appendToHistory("Ctrl+S - Save file\n");
+        ioHandler.appendToHistory("File menu has Recent Files list\n\n");
+        
         ioHandler.appendToHistory("BASIC SHAPES:\n");
         ioHandler.appendToHistory("circle, radius, x, y\n");
         ioHandler.appendToHistory("triangle, x1, y1, x2, y2, x3, y3\n");
@@ -1161,6 +1234,9 @@ public class UserInterface3 extends JFrame {
             "Enhanced with multi-line code editor\n" +
             "and control structures (if/while)\n" +
             "\n" +
+            "Modern File Manager with Recent Files\n" +
+            "Multi-threaded program execution\n" +
+            "\n" +
             "© 2025 CS340 Programming Language Design",
             "About",
             JOptionPane.INFORMATION_MESSAGE);
@@ -1214,6 +1290,16 @@ public class UserInterface3 extends JFrame {
      ********************************************************************/
     public TokenEncoder getTokenEncoder() {
         return tokenEncoder;
+    }
+    
+    /********************************************************************
+     * METHOD: getFileManager
+     * DESCRIPTION: Returns the file manager instance
+     * PARAMETERS: None
+     * RETURN VALUE: FileManager - the file manager
+     ********************************************************************/
+    public FileManager getFileManager() {
+        return fileManager;
     }
     
     /********************************************************************
