@@ -1,0 +1,10 @@
+integer maxSize = 10;
+integer current = 1;
+while (current <= maxSize)
+  if (current <= 5)
+    circle, current*10, 200, 200;
+  else
+    square, 300, 200, current*8;
+  endif
+  current + 1 -> current;
+endwhile
