@@ -1,0 +1,74 @@
+# ==========================================
+# THE BOUNCING SHAPE-SHIFTER
+# ==========================================
+
+# 1. Initialize Variables
+x = 50
+y = 50
+vx = 8
+vy = 5
+counter = 0
+
+print("Starting Animation...")
+
+# 2. Define the Animation Frame
+anim GameFrame {
+    clear
+    
+    # --- Draw Scenery ---
+    # Sky (Light Blue)
+    color(135, 206, 235)
+    rect(0, 0, 500, 350)
+    
+    # Ground (Green)
+    color(34, 139, 34)
+    rect(0, 350, 500, 150)
+    
+    # Sun (Yellow) - Static
+    color(255, 255, 0)
+    circle(450, 50, 40)
+    
+    # --- Logic: Dynamic Color ---
+    # Red on the left, Blue on the right
+    if x < 250 {
+        color(255, 80, 80)
+    } else {
+        color(80, 80, 255)
+    }
+    
+    # --- Logic: Shape Shifting ---
+    # Be a Circle in the sky, Square on the ground
+    if y < 350 {
+        circle(x, y, 30)
+    } else {
+        # Center the rect using math
+        rect(x - 30, y - 30, 60, 60)
+    }
+    
+    # --- Physics Engine ---
+    x = x + vx
+    y = y + vy
+    
+    # Bounce X (Left or Right Wall)
+    if x > 470 or x < 30 {
+        vx = 0 - vx
+        print("Bounce Wall!")
+    }
+    
+    # Bounce Y (Floor or Ceiling)
+    if y > 470 or y < 30 {
+        vy = 0 - vy
+        print("Bounce Vertical!")
+    }
+    
+    # --- Render Frame ---
+    sleep(30)
+}
+
+# 3. Main Game Loop
+while counter < 500 {
+    run GameFrame
+    counter = counter + 1
+}
+
+print("Game Over.")
