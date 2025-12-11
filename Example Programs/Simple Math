@@ -1,0 +1,8 @@
+'help'
+print("Testing Math Engine...")
+x = 10 + 5 * 4
+print("10 + 5 * 4 = ")
+print(x)
+y = (10 + 5) * 4
+print("With Parentheses = ")
+print(y)
