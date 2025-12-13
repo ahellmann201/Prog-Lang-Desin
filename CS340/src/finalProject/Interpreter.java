@@ -1,5 +1,26 @@
 package finalProject;
 
+/*******************************************************************
+* Name of program: Interpreter
+* PROGRAMMER: Tanner Sweigart & Olivia Hornbeck
+* COURSE: CS340 Programming Languages
+* DATE: December 13, 2025
+* REQUIREMENT: Assignments 6, 7, 8 (Interpreter, Math, Logic)
+*
+* DESCRIPTION:
+* This class is the core logic engine of the IDE. It takes the list
+* of tokens from the Lexer and executes them using a Recursive Descent
+* Parser. It handles Variable storage, Math evaluation (PEMDAS),
+* Logic evaluation (AND/OR/NOT), Control Flow (IF/WHILE), and
+* dispatches Graphics commands to the GraphicsFrame.
+*
+* COPYRIGHT:
+* This code is copyright (c)2025 Tanner Sweigart, Olivia Hornbeck and Dean Zeller.
+*
+* CREDITS:
+* Assisted by Artificial Intelligence.
+*******************************************************************/
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -21,6 +42,12 @@ public class Interpreter {
     // Parser State Helpers
     private int currentTokenIndex;
 
+    /**********************************************************
+    * METHOD: Interpreter (Constructor)
+    * DESCRIPTION: Initializes the interpreter components.
+    * PARAMETERS: IDEWindow outputWindow - The window for console output
+    * RETURN VALUE: N/A
+    **********************************************************/
     public Interpreter(IDEWindow outputWindow) {
         this.outputWindow = outputWindow;
         this.lexer = new Lexer();
@@ -29,6 +56,13 @@ public class Interpreter {
         this.graphicsFrame = new GraphicsFrame();
     }
 
+    /**********************************************************
+    * METHOD: execute
+    * DESCRIPTION: Runs the source code in a separate thread.
+    * Handles initialization and cleanup.
+    * PARAMETERS: String sourceCode - The raw code string
+    * RETURN VALUE: void
+    **********************************************************/
     public void execute(String sourceCode) {
         new Thread(() -> {
             try {
@@ -55,10 +89,23 @@ public class Interpreter {
         }).start();
     }
 
+    /**********************************************************
+    * METHOD: printSafe
+    * DESCRIPTION: Helper to print to console on the Event Dispatch Thread.
+    * PARAMETERS: String msg - The message to print
+    * RETURN VALUE: void
+    **********************************************************/
     private void printSafe(String msg) {
         SwingUtilities.invokeLater(() -> outputWindow.printToConsole(msg));
     }
 
+    /**********************************************************
+    * METHOD: parse
+    * DESCRIPTION: The main loop that iterates through tokens and 
+    * executes commands (Keywords, Assignments, Blocks).
+    * PARAMETERS: List<Token> tokens - The list of instruction tokens
+    * RETURN VALUE: void
+    **********************************************************/
     private void parse(List<Token> tokens) {
         Stack<Integer> whileStack = new Stack<>();
         Stack<String> blockStack = new Stack<>(); 
@@ -221,8 +268,12 @@ public class Interpreter {
         }
     }
 
-    // --- HELP / DOCUMENTATION ---
-
+    /**********************************************************
+    * METHOD: printHelp
+    * DESCRIPTION: Outputs the detailed documentation to the console.
+    * PARAMETERS: None
+    * RETURN VALUE: void
+    **********************************************************/
     private void printHelp() {
         String help = 
             "\n========== LANGUAGE REFERENCE ==========\n\n" +
@@ -258,12 +309,24 @@ public class Interpreter {
 
     // --- LOGIC, MATH, and HELPERS ---
 
+    /**********************************************************
+    * METHOD: evaluateLogic
+    * DESCRIPTION: Entry point for Logic Evaluation.
+    * PARAMETERS: List<Token> tokens - The logic expression
+    * RETURN VALUE: boolean - Result of evaluation
+    **********************************************************/
     private boolean evaluateLogic(List<Token> tokens) {
         if (tokens.isEmpty()) return false;
         currentTokenIndex = 0;
         return parseLogicOr(tokens);
     }
 
+    /**********************************************************
+    * METHOD: parseLogicOr
+    * DESCRIPTION: Handles OR operations.
+    * PARAMETERS: List<Token> tokens
+    * RETURN VALUE: boolean
+    **********************************************************/
     private boolean parseLogicOr(List<Token> tokens) {
         boolean left = parseLogicAnd(tokens);
         while (currentTokenIndex < tokens.size() && tokens.get(currentTokenIndex).value.equals("or")) {
@@ -274,6 +337,12 @@ public class Interpreter {
         return left;
     }
 
+    /**********************************************************
+    * METHOD: parseLogicAnd
+    * DESCRIPTION: Handles AND operations.
+    * PARAMETERS: List<Token> tokens
+    * RETURN VALUE: boolean
+    **********************************************************/
     private boolean parseLogicAnd(List<Token> tokens) {
         boolean left = parseLogicNot(tokens);
         while (currentTokenIndex < tokens.size() && tokens.get(currentTokenIndex).value.equals("and")) {
@@ -284,6 +353,12 @@ public class Interpreter {
         return left;
     }
     
+    /**********************************************************
+    * METHOD: parseLogicNot
+    * DESCRIPTION: Handles NOT operations.
+    * PARAMETERS: List<Token> tokens
+    * RETURN VALUE: boolean
+    **********************************************************/
     private boolean parseLogicNot(List<Token> tokens) {
         if (currentTokenIndex < tokens.size() && tokens.get(currentTokenIndex).value.equals("not")) {
             currentTokenIndex++;
@@ -292,6 +367,12 @@ public class Interpreter {
         return parseComparison(tokens);
     }
 
+    /**********************************************************
+    * METHOD: parseComparison
+    * DESCRIPTION: Handles relational operators (==, <, >).
+    * PARAMETERS: List<Token> tokens
+    * RETURN VALUE: boolean
+    **********************************************************/
     private boolean parseComparison(List<Token> tokens) {
         int start = currentTokenIndex;
         int end = start;
@@ -329,11 +410,23 @@ public class Interpreter {
         return evaluateMath(sub) != 0;
     }
 
+    /**********************************************************
+    * METHOD: evaluateMath
+    * DESCRIPTION: Entry point for Math Evaluation.
+    * PARAMETERS: List<Token> tokens - The math expression
+    * RETURN VALUE: int - Result of evaluation
+    **********************************************************/
     private int evaluateMath(List<Token> tokens) {
         if (tokens.isEmpty()) return 0;
         return parseExpression(tokens, new int[]{0});
     }
 
+    /**********************************************************
+    * METHOD: parseExpression
+    * DESCRIPTION: Handles Addition and Subtraction.
+    * PARAMETERS: List<Token> tokens, int[] idx
+    * RETURN VALUE: int
+    **********************************************************/
     private int parseExpression(List<Token> tokens, int[] idx) {
         int left = parseTerm(tokens, idx);
         while (idx[0] < tokens.size()) {
@@ -346,6 +439,12 @@ public class Interpreter {
         return left;
     }
 
+    /**********************************************************
+    * METHOD: parseTerm
+    * DESCRIPTION: Handles Multiplication and Division.
+    * PARAMETERS: List<Token> tokens, int[] idx
+    * RETURN VALUE: int
+    **********************************************************/
     private int parseTerm(List<Token> tokens, int[] idx) {
         int left = parseFactor(tokens, idx);
         while (idx[0] < tokens.size()) {
@@ -358,6 +457,12 @@ public class Interpreter {
         return left;
     }
 
+    /**********************************************************
+    * METHOD: parseFactor
+    * DESCRIPTION: Handles Factors (Numbers, Variables, Parens).
+    * PARAMETERS: List<Token> tokens, int[] idx
+    * RETURN VALUE: int
+    **********************************************************/
     private int parseFactor(List<Token> tokens, int[] idx) {
         if (idx[0] >= tokens.size()) return 0;
         Token t = tokens.get(idx[0]);
@@ -375,6 +480,13 @@ public class Interpreter {
         return 0;
     }
 
+    /**********************************************************
+    * METHOD: extractExpressionTokens
+    * DESCRIPTION: Extracts a subset of tokens for a single expression.
+    * Stops at delimiters like semicolons or keywords.
+    * PARAMETERS: List<Token> allTokens, int start, String delimiter
+    * RETURN VALUE: List<Token>
+    **********************************************************/
     private List<Token> extractExpressionTokens(List<Token> allTokens, int start, String delimiter) {
         List<Token> subset = new ArrayList<>();
         int i = start;
@@ -399,17 +511,35 @@ public class Interpreter {
         return subset;
     }
 
+    /**********************************************************
+    * METHOD: resolveValue
+    * DESCRIPTION: Converts a token into its string value (or variable value).
+    * PARAMETERS: Token t
+    * RETURN VALUE: String
+    **********************************************************/
     private String resolveValue(Token t) {
         if (t.type == Token.Type.LITERAL) return t.value.replace("\"", "");
         if (t.type == Token.Type.ID) return variables.getOrDefault(t.value, 0).toString();
         return "0";
     }
 
+    /**********************************************************
+    * METHOD: check
+    * DESCRIPTION: Helper to safely check the value of a token at an index.
+    * PARAMETERS: List<Token> tokens, int i, String val
+    * RETURN VALUE: boolean
+    **********************************************************/
     private boolean check(List<Token> tokens, int i, String val) {
         return i < tokens.size() && tokens.get(i).value.equals(val);
     }
     
     // -- GRAPHICS HANDLERS --
+    /**********************************************************
+    * METHOD: handleSleep
+    * DESCRIPTION: Pauses execution and triggers graphics refresh.
+    * PARAMETERS: List<Token> tokens, int i
+    * RETURN VALUE: int - new index
+    **********************************************************/
     private int handleSleep(List<Token> tokens, int i) {
         i++; if(check(tokens,i,"(")) i++;
         int ms = evaluateMath(extractExpressionTokens(tokens, i, ")")); 
@@ -419,6 +549,12 @@ public class Interpreter {
         if(check(tokens,i,";")) i++; return i;
     }
     
+    /**********************************************************
+    * METHOD: handlePrint
+    * DESCRIPTION: Prints to console. Handles strings vs math expressions.
+    * PARAMETERS: List<Token> tokens, int i
+    * RETURN VALUE: int - new index
+    **********************************************************/
     private int handlePrint(List<Token> tokens, int i) {
         i++; if(check(tokens,i,"(")) i++;
         List<Token> content = extractExpressionTokens(tokens, i, ")");
@@ -439,6 +575,14 @@ public class Interpreter {
     private int handleTriangle(List<Token> tokens, int i) { return genericGraphics(tokens, i, (args)->graphicsFrame.addTriangle(args[0],args[1],args[2],args[3],args[4],args[5]), 6); }
 
     private interface GfxAction { void apply(int[] args); }
+    
+    /**********************************************************
+    * METHOD: genericGraphics
+    * DESCRIPTION: Parsing logic for all graphics commands.
+    * Extracts arguments, shows window, adds command to buffer.
+    * PARAMETERS: List<Token> tokens, int i, GfxAction action, int count
+    * RETURN VALUE: int - new index
+    **********************************************************/
     private int genericGraphics(List<Token> tokens, int i, GfxAction action, int count) {
         i++; if(check(tokens,i,"(")) i++;
         int[] args = new int[count];

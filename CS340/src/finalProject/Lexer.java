@@ -1,5 +1,25 @@
 package finalProject;
 
+/*******************************************************************
+* Name of program: Lexer
+* PROGRAMMER: Tanner Sweigart & Olivia Hornbeck
+* COURSE: CS340 Programming Languages
+* DATE: December 13, 2025
+* REQUIREMENT: Assignment 3 (Tokenization)
+*
+* DESCRIPTION:
+* This class is responsible for breaking raw source code into a list
+* of Token objects. It uses Regular Expressions (Regex) to identify
+* keywords, identifiers, numbers, strings, and operators.
+* It also handles stripping out comments.
+*
+* COPYRIGHT:
+* This code is copyright (c)2025 Tanner Sweigart, Olivia Hornbeck and Dean Zeller.
+*
+* CREDITS:
+* Assisted by Artificial Intelligence.
+*******************************************************************/
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -12,8 +32,15 @@ public class Lexer {
         "([a-zA-Z][a-zA-Z0-9]*)|" + // Words (Keywords/IDs)
         "(\\d+)|" +                 // Numbers
         "(\".*?\")|" +              // Strings
-        "(==|<=|>=|!=|[+\\-*/=;(),{}<>])"; // Operators (Added * / < >)
+        "(==|<=|>=|!=|[+\\-*/=;(),{}<>])"; // Operators
 
+    /**********************************************************
+    * METHOD: tokenize
+    * DESCRIPTION: Scans the input string line by line and converts
+    * it into a list of Tokens.
+    * PARAMETERS: String source - The raw source code
+    * RETURN VALUE: List<Token> - The list of identified tokens
+    **********************************************************/
     public List<Token> tokenize(String source) {
         List<Token> tokens = new ArrayList<>();
         String[] lines = source.split("\n");
@@ -21,7 +48,7 @@ public class Lexer {
         for (int i = 0; i < lines.length; i++) {
             String line = lines[i];
             
-            // FIXED: Handle inline comments (remove everything after # or //)
+            // Handle inline comments (remove everything after # or //)
             int commentIdx = line.indexOf("#");
             if (commentIdx != -1) line = line.substring(0, commentIdx);
             
@@ -39,8 +66,13 @@ public class Lexer {
         return tokens;
     }
 
+    /**********************************************************
+    * METHOD: determineType
+    * DESCRIPTION: specific type of a token string (e.g., Keyword vs ID).
+    * PARAMETERS: String val - The string value of the token
+    * RETURN VALUE: Token.Type - The classification of the token
+    **********************************************************/
     private Token.Type determineType(String val) {
-        // Updated with all new keywords
         if (val.matches("if|else|while|print|var|int|draw|circle|rect|line|triangle|color|clear|sleep|help|anim|run|and|or|not")) return Token.Type.KEYWORD;
         if (val.matches("\\d+")) return Token.Type.LITERAL;
         if (val.matches("\".*\"")) return Token.Type.LITERAL;

@@ -1,5 +1,25 @@
 package finalProject;
 
+/*******************************************************************
+* Name of program: GraphicsFrame
+* PROGRAMMER: Tanner Sweigart & Olivia Hornbeck
+* COURSE: CS340 Programming Languages
+* DATE: December 13, 2025
+* REQUIREMENT: Assignment 4 (Graphics)
+*
+* DESCRIPTION:
+* This class creates a separate window for graphics output.
+* It implements a Double Buffering strategy to prevent flickering during
+* animations. It maintains two lists of shapes (current vs pending)
+* and tracks the window's state (open/closed) to control the interpreter.
+*
+* COPYRIGHT:
+* This code is copyright (c)2025 Tanner Sweigart, Olivia Hornbeck and Dean Zeller.
+*
+* CREDITS:
+* Assisted by Artificial Intelligence.
+*******************************************************************/
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
@@ -7,10 +27,6 @@ import java.awt.event.WindowEvent;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Graphics Window.
- * UPDATED: Tracks 'isOpen' state to allow the Interpreter to stop execution if the user closes the window.
- */
 public class GraphicsFrame extends JFrame {
     
     private interface ShapeCommand {
@@ -26,6 +42,13 @@ public class GraphicsFrame extends JFrame {
     // Track if the window is logically "open" to control interpreter execution
     private boolean open = false;
 
+    /**********************************************************
+    * METHOD: GraphicsFrame (Constructor)
+    * DESCRIPTION: Sets up the JFrame, the drawing canvas panel,
+    * and window listeners.
+    * PARAMETERS: None
+    * RETURN VALUE: N/A
+    **********************************************************/
     public GraphicsFrame() {
         setTitle("Graphics Output Canvas");
         setSize(500, 500);
@@ -64,29 +87,50 @@ public class GraphicsFrame extends JFrame {
         add(canvas);
     }
     
+    /**********************************************************
+    * METHOD: setVisible
+    * DESCRIPTION: Overrides standard setVisible to track 'open' state.
+    * PARAMETERS: boolean b - True to show, False to hide
+    * RETURN VALUE: void
+    **********************************************************/
     @Override
     public void setVisible(boolean b) {
         super.setVisible(b);
         if (b) open = true;
     }
     
+    /**********************************************************
+    * METHOD: isOpen
+    * DESCRIPTION: Checks if the window is currently considered open.
+    * PARAMETERS: None
+    * RETURN VALUE: boolean - True if open
+    **********************************************************/
     public boolean isOpen() {
         return open;
     }
 
-    /**
-     * Completely resets the graphics state.
-     */
+    /**********************************************************
+    * METHOD: reset
+    * DESCRIPTION: Completely resets the graphics state (buffers and color).
+    * PARAMETERS: None
+    * RETURN VALUE: void
+    **********************************************************/
     public void reset() {
         synchronized(this) {
             pendingShapes.clear();
             currentShapes.clear();
         }
         currentColor = Color.BLACK;
-        // Do not force visibility here
         canvas.repaint();
     }
 
+    /**********************************************************
+    * METHOD: clear
+    * DESCRIPTION: Clears the pending buffer (background logic), 
+    * but does NOT wipe the screen immediately.
+    * PARAMETERS: None
+    * RETURN VALUE: void
+    **********************************************************/
     public void clear() {
         synchronized(this) {
             pendingShapes.clear();
@@ -94,6 +138,13 @@ public class GraphicsFrame extends JFrame {
         currentColor = Color.BLACK;
     }
     
+    /**********************************************************
+    * METHOD: refresh
+    * DESCRIPTION: Swaps the pending buffer to the current buffer
+    * and triggers a repaint (updates screen).
+    * PARAMETERS: None
+    * RETURN VALUE: void
+    **********************************************************/
     public void refresh() {
         synchronized(this) {
             currentShapes = new ArrayList<>(pendingShapes);
@@ -101,10 +152,22 @@ public class GraphicsFrame extends JFrame {
         canvas.repaint();
     }
 
+    /**********************************************************
+    * METHOD: setCurrentColor
+    * DESCRIPTION: Sets the drawing color for subsequent shapes.
+    * PARAMETERS: int r, int g, int b - RGB values
+    * RETURN VALUE: void
+    **********************************************************/
     public void setCurrentColor(int r, int g, int b) {
         this.currentColor = new Color(r, g, b);
     }
 
+    /**********************************************************
+    * METHOD: addCircle
+    * DESCRIPTION: Adds a circle command to the pending buffer.
+    * PARAMETERS: int x, int y, int radius - Geometry
+    * RETURN VALUE: void
+    **********************************************************/
     public void addCircle(int x, int y, int radius) {
         Color c = currentColor;
         synchronized(this) {
@@ -115,6 +178,12 @@ public class GraphicsFrame extends JFrame {
         }
     }
 
+    /**********************************************************
+    * METHOD: addRect
+    * DESCRIPTION: Adds a rectangle command to the pending buffer.
+    * PARAMETERS: int x, int y, int w, int h - Geometry
+    * RETURN VALUE: void
+    **********************************************************/
     public void addRect(int x, int y, int w, int h) {
         Color c = currentColor;
         synchronized(this) {
@@ -125,6 +194,12 @@ public class GraphicsFrame extends JFrame {
         }
     }
 
+    /**********************************************************
+    * METHOD: addLine
+    * DESCRIPTION: Adds a line command to the pending buffer.
+    * PARAMETERS: int x1, int y1, int x2, int y2 - Endpoints
+    * RETURN VALUE: void
+    **********************************************************/
     public void addLine(int x1, int y1, int x2, int y2) {
         Color c = currentColor;
         synchronized(this) {
@@ -135,6 +210,12 @@ public class GraphicsFrame extends JFrame {
         }
     }
 
+    /**********************************************************
+    * METHOD: addTriangle
+    * DESCRIPTION: Adds a triangle command to the pending buffer.
+    * PARAMETERS: int x1, y1, x2, y2, x3, y3 - Vertices
+    * RETURN VALUE: void
+    **********************************************************/
     public void addTriangle(int x1, int y1, int x2, int y2, int x3, int y3) {
         Color c = currentColor;
         synchronized(this) {

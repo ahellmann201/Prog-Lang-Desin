@@ -1,9 +1,25 @@
 package finalProject;
 
-/**
- * Represents a single token in the language.
- * Updated with encodings for Math and Logic
- */
+/*******************************************************************
+* Name of program: Token
+* PROGRAMMER: Tanner Sweigart & Olivia Hornbeck
+* COURSE: CS340 Programming Languages
+* DATE: December 13, 2025
+* REQUIREMENT: Assignment 5 (Encoding Tokens)
+*
+* DESCRIPTION:
+* This class represents a single token in the custom language.
+* It stores the type of token (Keyword, ID, Literal, etc.), the 
+* raw string value, the line number, and a specific integer encoding 
+* for the compiler.
+*
+* COPYRIGHT:
+* This code is copyright (c)2025 Tanner Sweigart, Olivia Hornbeck and Dean Zeller.
+*
+* CREDITS:
+* Assisted by Artificial Intelligence.
+*******************************************************************/
+
 public class Token {
     
     public enum Type {
@@ -15,6 +31,14 @@ public class Token {
     public int lineNumber;
     public int code; 
 
+    /**********************************************************
+    * METHOD: Token (Constructor)
+    * DESCRIPTION: Creates a new Token and calculates its integer encoding.
+    * PARAMETERS: Type type - The category of token
+    * String value - The raw text of the token
+    * int lineNumber - The line it was found on
+    * RETURN VALUE: N/A
+    **********************************************************/
     public Token(Type type, String value, int lineNumber) {
         this.type = type;
         this.value = value;
@@ -22,6 +46,14 @@ public class Token {
         this.code = encode(type, value);
     }
 
+    /**********************************************************
+    * METHOD: encode
+    * DESCRIPTION: Assigns a unique integer ID based on the token
+    * type and value (e.g., 'if' = 100).
+    * PARAMETERS: Type type - The token category
+    * String val - The token text
+    * RETURN VALUE: int - The specific integer code
+    **********************************************************/
     private int encode(Type type, String val) {
         switch (type) {
             case KEYWORD:
@@ -70,6 +102,12 @@ public class Token {
         }
     }
 
+    /**********************************************************
+    * METHOD: toString
+    * DESCRIPTION: Returns a string representation of the token for debugging.
+    * PARAMETERS: None
+    * RETURN VALUE: String - Formatted string with type, value, and ID
+    **********************************************************/
     @Override
     public String toString() {
         return String.format("%-10s | %-15s | ID: %d", type, value, code);
