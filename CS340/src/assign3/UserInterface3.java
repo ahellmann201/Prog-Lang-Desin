@@ -1,216 +1,322 @@
 package assign3;
 import javax.swing.*;
+import javax.swing.text.BadLocationException;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/********************************************************************
- * Drawing Chat Application - User Interface
- *
- * PROGRAMMER: [Your Name]    *
- * COURSE: [Course Number and Name]    *
- * DATE: [Date Submitted]    *
- * REQUIREMENT: Assignment 5 - Encoding    *
- *
+/**
+ * Drawing Chat Application - Enhanced User Interface with Code Editor
+ * 
+ * PROGRAMMER: [Your Name] 
+ * COURSE: CS340 Programming Lang/Design 
+ * DATE: [Current Date] 
+ * REQUIREMENT: Assignment 7 - Control Structures & Multi-line Editor
+ * 
  * DESCRIPTION:
- * This file contains the main user interface components for the drawing chat application, 
- * including the JFrame setup, panel organization, event handling for user interactions,
- * and token encoding functionality.
- *
+ * This file contains the main user interface with multi-line code editor support,
+ * control structure implementation (if/while statements), and enhanced interpreter
+ * functionality. It replaces the single-line input with a full code editor.
+ * 
  * COPYRIGHT:
  * This code is copyright (c)2025 [Your Name] and Dean Zeller.
- *
+ * 
  * CREDITS:
- * Java Swing documentation and tutorials
- ********************************************************************/
+ * Java Swing documentation, JTextArea component usage
+ */
 public class UserInterface3 extends JFrame {
     private JTextArea historyArea;
-    private JTextField inputField;
+    private JTextArea inputArea;  // Multi-line input area
+    private JTextArea lineNumberArea;
     private DrawingPanel drawingPanel;
     private InputOutputHandler3 ioHandler;
     private CodeGeneration3 codeGeneration;
     private AnimationSystem animationSystem;
     private TokenEncoder tokenEncoder;
     private Interpreter interpreter;
+    private FileManager fileManager; // Modern file manager
     private JToggleButton interpreterModeButton;
-    
+
     private JToggleButton fillButton;
     private JButton clearScreenButton;
-    private JButton sendButton;
+    private JButton executeButton; // Execute all code at once
+    private JButton stopButton;    // Stop program execution
     private JToggleButton encodingButton;
     private JButton undoButton;
+    private JButton clearCodeButton;
     
     private List<String> commandHistory = new ArrayList<>();
     private int historyIndex = -1;
     private boolean encodingMode = false;
-
+    private boolean programRunning = false;
+    private Thread programThread = null;
+    
     /********************************************************************
-     * METHOD: UserInterface Constructor
-     * DESCRIPTION: Initializes the main application window and sets up all UI components
+     * METHOD: UserInterface3 Constructor
+     * DESCRIPTION: Initializes the main application window with multi-line editor
      * PARAMETERS: None
      * RETURN VALUE: None
      ********************************************************************/
     public UserInterface3() {
-        setTitle("Drawing Chat Application");
+        setTitle("Drawing Chat Application - Code Editor");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1000, 700);
         setLayout(new BorderLayout());
-
+        
         // Initialize handlers
         ioHandler = new InputOutputHandler3();
         codeGeneration = new CodeGeneration3();
         ioHandler.setCodeGeneration(codeGeneration);
         animationSystem = new AnimationSystem(this);
-        tokenEncoder = new TokenEncoder();  
+        tokenEncoder = new TokenEncoder();
         interpreter = new Interpreter(tokenEncoder, ioHandler);
+        fileManager = new FileManager(this); // Modern file manager
+        
         // Create components
         createUIComponents();
         setupLayout();
         setupEventHandlers();
-
+        
         // Set history area for IO handler
         ioHandler.setHistoryArea(historyArea);
-
+        
         // Add help message
         displayHelp();
-
         setVisible(true);
     }
-
-    /********************************************************************
-     * METHOD: getAnimationSystem
-     * DESCRIPTION: Returns the animation system instance
-     * PARAMETERS: None
-     * RETURN VALUE: AnimationSystem - the animation system
-     ********************************************************************/
-    public AnimationSystem getAnimationSystem() {
-        return animationSystem;
-    }
-
-    /********************************************************************
-     * METHOD: getTokenEncoder
-     * DESCRIPTION: Returns the token encoder instance
-     * PARAMETERS: None
-     * RETURN VALUE: TokenEncoder - the token encoder
-     ********************************************************************/
-    public TokenEncoder getTokenEncoder() {
-        return tokenEncoder;
-    }
-
+    
     /********************************************************************
      * METHOD: createUIComponents
-     * DESCRIPTION: Creates all UI components for the application
+     * DESCRIPTION: Creates all UI components including multi-line editor
      * PARAMETERS: None
      * RETURN VALUE: None
      ********************************************************************/
     private void createUIComponents() {
         historyArea = new JTextArea();
         historyArea.setEditable(false);
-
-        inputField = new JTextField();
-
+        historyArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        
+        // Multi-line input area for writing full programs
+        inputArea = new JTextArea(10, 50);
+        inputArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        inputArea.setTabSize(2); // Set tab to 2 spaces for indentation
+        
+        // Line number area for the editor
+        lineNumberArea = new JTextArea("1");
+        lineNumberArea.setBackground(Color.LIGHT_GRAY);
+        lineNumberArea.setEditable(false);
+        lineNumberArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        
         drawingPanel = new DrawingPanel();
         drawingPanel.setIOHandler(ioHandler);
         drawingPanel.setCodeGeneration(codeGeneration);
-
+        
         // Create control buttons
         fillButton = new JToggleButton("Fill: OFF");
         clearScreenButton = new JButton("Clear Screen");
-        sendButton = new JButton("Send");  // Explicitly create send button
+        executeButton = new JButton("Execute Code"); // Execute entire program
+        stopButton = new JButton("Stop Program"); // Stop execution
+        stopButton.setEnabled(false); // Disabled initially
         encodingButton = new JToggleButton("Encoding: OFF");
         undoButton = new JButton("Undo");
+        clearCodeButton = new JButton("Clear Code");
         interpreterModeButton = new JToggleButton("Interpreter: Actual");
     }
-
+    
     /********************************************************************
      * METHOD: setupLayout
-     * DESCRIPTION: Arranges all UI components in the frame
+     * DESCRIPTION: Arranges all UI components with split panes for editor
      * PARAMETERS: None
      * RETURN VALUE: None
      ********************************************************************/
     private void setupLayout() {
-        JScrollPane scrollPane = new JScrollPane(historyArea);
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, scrollPane, drawingPanel);
-        splitPane.setDividerLocation(400);
-        add(splitPane, BorderLayout.CENTER);
-
-        JPanel inputPanel = new JPanel(new BorderLayout());
-        inputPanel.add(inputField, BorderLayout.CENTER);
-
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-
-        // Create dropdown menus for better organization
+        JScrollPane historyScroll = new JScrollPane(historyArea);
+        historyScroll.setPreferredSize(new Dimension(400, 0));
+        
+        // Create editor panel with line numbers
+        JPanel editorPanel = new JPanel(new BorderLayout());
+        JScrollPane inputScroll = new JScrollPane(inputArea);
+        inputScroll.setRowHeaderView(lineNumberArea); // Add line numbers on left
+        editorPanel.add(new JLabel("Code Editor (Write your program here):"), BorderLayout.NORTH);
+        editorPanel.add(inputScroll, BorderLayout.CENTER);
+        
+        // Button panel for editor controls
+        JPanel editorButtonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        editorButtonPanel.add(executeButton);
+        editorButtonPanel.add(stopButton);
+        editorButtonPanel.add(clearCodeButton);
+        editorPanel.add(editorButtonPanel, BorderLayout.SOUTH);
+        
+        // Main split pane: history on left, drawing on right
+        JSplitPane mainSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, historyScroll, drawingPanel);
+        mainSplit.setDividerLocation(400);
+        
+        // Bottom split: main content on top, editor on bottom
+        JSplitPane bottomSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, mainSplit, editorPanel);
+        bottomSplit.setDividerLocation(400);
+        
+        add(bottomSplit, BorderLayout.CENTER);
+        
+        // Control panel at the top
+        JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        controlPanel.add(fillButton);
+        controlPanel.add(clearScreenButton);
+        controlPanel.add(undoButton);
+        controlPanel.add(encodingButton);
+        controlPanel.add(interpreterModeButton);
+        
+        // Menu bar for additional functionality
+        JMenuBar menuBar = createMenuBar();
+        controlPanel.add(menuBar);
+        
+        add(controlPanel, BorderLayout.NORTH);
+        
+        // Update line numbers when typing
+        inputArea.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                updateLineNumbers();
+            }
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                updateLineNumbers();
+            }
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                updateLineNumbers();
+            }
+        });
+    }
+    
+    /********************************************************************
+     * METHOD: createMenuBar
+     * DESCRIPTION: Creates the menu bar with all menu items
+     * PARAMETERS: None
+     * RETURN VALUE: JMenuBar - the created menu bar
+     ********************************************************************/
+    private JMenuBar createMenuBar() {
         JMenuBar menuBar = new JMenuBar();
-
+        
+        // File menu
+        JMenu fileMenu = new JMenu("File");
+        JMenuItem newFileItem = new JMenuItem("New");
+        JMenuItem openFileItem = new JMenuItem("Open...");
+        JMenuItem saveFileItem = new JMenuItem("Save");
+        JMenuItem saveAsItem = new JMenuItem("Save As...");
+        
+        // Add Recent Files submenu from FileManager
+        JMenu recentFilesMenu = fileManager.getRecentFilesMenu();
+        
+        newFileItem.addActionListener(e -> {
+            inputArea.setText("");
+            updateLineNumbers();
+            ioHandler.appendToHistory("System: New file created\n");
+        });
+        
+        openFileItem.addActionListener(e -> {
+            String content = fileManager.openFileWithRecentMenu(); // Use enhanced file dialog
+            if (content != null) {
+                inputArea.setText(content);
+                updateLineNumbers();
+                ioHandler.appendToHistory("System: File loaded into editor\n");
+            }
+        });
+        
+        saveFileItem.addActionListener(e -> {
+            String content = inputArea.getText();
+            if (!content.trim().isEmpty()) {
+                File savedFile = fileManager.saveFile(content);
+                if (savedFile != null) {
+                    ioHandler.appendToHistory("System: File saved: " + savedFile.getName() + "\n");
+                }
+            } else {
+                ioHandler.appendToHistory("System: No content to save\n");
+            }
+        });
+        
+        saveAsItem.addActionListener(e -> {
+            String content = inputArea.getText();
+            if (!content.trim().isEmpty()) {
+                String defaultName = "program.draw";
+                File savedFile = fileManager.saveFileAs(content, defaultName);
+                if (savedFile != null) {
+                    ioHandler.appendToHistory("System: File saved as: " + savedFile.getName() + "\n");
+                }
+            } else {
+                ioHandler.appendToHistory("System: No content to save\n");
+            }
+        });
+        
+        fileMenu.add(newFileItem);
+        fileMenu.add(openFileItem);
+        fileMenu.add(recentFilesMenu); // Add recent files menu
+        fileMenu.addSeparator();
+        fileMenu.add(saveFileItem);
+        fileMenu.add(saveAsItem);
+        
+        // Edit menu
+        JMenu editMenu = new JMenu("Edit");
+        JMenuItem formatCodeItem = new JMenuItem("Format Code");
+        JMenuItem commentCodeItem = new JMenuItem("Comment Selection");
+        formatCodeItem.addActionListener(e -> formatCode());
+        commentCodeItem.addActionListener(e -> commentSelection());
+        editMenu.add(formatCodeItem);
+        editMenu.add(commentCodeItem);
+        
         // Loop menu
         JMenu loopMenu = new JMenu("Loop");
         JMenuItem startLoopItem = new JMenuItem("Start Loop");
         JMenuItem endLoopItem = new JMenuItem("End Loop");
         JMenuItem playLoopItem = new JMenuItem("Play Loop");
-
         startLoopItem.addActionListener(e -> {
             codeGeneration.startLoopRecording(ioHandler);
             ioHandler.appendToHistory("System: Started recording loop\n");
         });
-
         endLoopItem.addActionListener(e -> {
             String loopName = ioHandler.showInputDialog("Enter loop name:");
             if (loopName != null && !loopName.trim().isEmpty()) {
                 codeGeneration.endLoopRecording(loopName, ioHandler);
-                ioHandler.appendToHistory("System: Saved loop as '" + loopName + "'\n");
+                ioHandler.appendToHistory("System: Saved loop as " + loopName + "\n");
             }
         });
-
         playLoopItem.addActionListener(e -> {
-            List<CodeGeneration3.Loop> loops = codeGeneration.getLoops();
+            List<Loop> loops = codeGeneration.getLoops();
             if (loops.isEmpty()) {
                 ioHandler.appendToHistory("System: No loops saved\n");
                 return;
             }
-
             String[] loopNames = new String[loops.size()];
             for (int i = 0; i < loops.size(); i++) {
                 loopNames[i] = loops.get(i).getName();
             }
-
-            String selectedLoop = ioHandler.showSelectionDialog("Play Loop", "Select a loop to play:", loopNames);
+            String selectedLoop = ioHandler.showSelectionDialog("Play Loop", 
+                    "Select a loop to play:", loopNames);
             if (selectedLoop != null) {
                 codeGeneration.playLoop(selectedLoop, drawingPanel, ioHandler);
                 ioHandler.appendToHistory("System: Playing loop \"" + selectedLoop + "\"\n");
             }
         });
-
         loopMenu.add(startLoopItem);
         loopMenu.add(endLoopItem);
         loopMenu.add(playLoopItem);
-
+        
         // Variables menu
         JMenu varsMenu = new JMenu("Variables");
         JMenuItem showVarsItem = new JMenuItem("Show Variables");
         JMenuItem clearVarsItem = new JMenuItem("Clear Variables");
-
         showVarsItem.addActionListener(e -> ioHandler.showVariables());
         clearVarsItem.addActionListener(e -> {
             ioHandler.clearVariables();
             ioHandler.appendToHistory("System: All variables cleared\n");
         });
-
         varsMenu.add(showVarsItem);
         varsMenu.add(clearVarsItem);
-
-        // File menu
-        JMenu fileMenu = new JMenu("File");
-        JMenuItem loadFileItem = new JMenuItem("Load File");
-
-        loadFileItem.addActionListener(e -> {
-            FileReader3 fileReader = new FileReader3(this);
-            fileReader.readFile();
-        });
-
-        fileMenu.add(loadFileItem);
-
+        
         // Animation menu
         JMenu animationMenu = new JMenu("Animation");
         JMenuItem createAnimation = new JMenuItem("Create Animation");
@@ -218,44 +324,37 @@ public class UserInterface3 extends JFrame {
         JMenuItem playAnimation = new JMenuItem("Play Animation");
         JMenuItem stopAnimation = new JMenuItem("Stop Animation");
         JMenuItem setDelayItem = new JMenuItem("Set Frame Delay");
-
         createAnimation.addActionListener(e -> {
             String animName = ioHandler.showInputDialog("Enter animation name:");
             if (animName != null && !animName.trim().isEmpty()) {
                 animationSystem.createAnimation(animName);
             }
         });
-
         addKeyframeItem.addActionListener(e -> {
             String frameName = ioHandler.showInputDialog("Enter keyframe name:");
             if (frameName != null && !frameName.trim().isEmpty()) {
                 animationSystem.addKeyframe(frameName);
             }
         });
-
         playAnimation.addActionListener(e -> {
             List<AnimationSystem.Animation> anims = animationSystem.getAnimations();
             if (anims.isEmpty()) {
                 ioHandler.appendToHistory("System: No animations created\n");
                 return;
             }
-
             String[] animNames = new String[anims.size()];
             for (int i = 0; i < anims.size(); i++) {
                 animNames[i] = anims.get(i).getName();
             }
-
-            String selectedAnim = ioHandler.showSelectionDialog("Play Animation",
-                "Select animation to play:", animNames);
+            String selectedAnim = ioHandler.showSelectionDialog("Play Animation", 
+                    "Select animation to play:", animNames);
             if (selectedAnim != null) {
                 animationSystem.playAnimation(selectedAnim);
             }
         });
-
         stopAnimation.addActionListener(e -> {
             animationSystem.stopAnimation();
         });
-
         setDelayItem.addActionListener(e -> {
             String delayStr = ioHandler.showInputDialog("Enter frame delay in milliseconds:");
             if (delayStr != null && !delayStr.trim().isEmpty()) {
@@ -267,31 +366,47 @@ public class UserInterface3 extends JFrame {
                 }
             }
         });
-
         animationMenu.add(createAnimation);
         animationMenu.add(addKeyframeItem);
         animationMenu.add(playAnimation);
         animationMenu.add(stopAnimation);
         animationMenu.add(setDelayItem);
-
-        // Add menus to menu bar
+        
+        // Control Structures menu (NEW)
+        JMenu controlMenu = new JMenu("Control");
+        JMenuItem insertIfItem = new JMenuItem("Insert If Statement");
+        JMenuItem insertWhileItem = new JMenuItem("Insert While Loop");
+        JMenuItem insertForItem = new JMenuItem("Insert For Loop");
+        JMenuItem insertBlockItem = new JMenuItem("Insert Code Block {}");
+        insertIfItem.addActionListener(e -> insertTemplate("if"));
+        insertWhileItem.addActionListener(e -> insertTemplate("while"));
+        insertForItem.addActionListener(e -> insertTemplate("for"));
+        insertBlockItem.addActionListener(e -> insertTemplate("block"));
+        controlMenu.add(insertIfItem);
+        controlMenu.add(insertWhileItem);
+        controlMenu.add(insertForItem);
+        controlMenu.add(insertBlockItem);
+        
+        // Help menu
+        JMenu helpMenu = new JMenu("Help");
+        JMenuItem showHelpItem = new JMenuItem("Show Commands");
+        JMenuItem aboutItem = new JMenuItem("About");
+        showHelpItem.addActionListener(e -> displayHelp());
+        aboutItem.addActionListener(e -> showAbout());
+        helpMenu.add(showHelpItem);
+        helpMenu.add(aboutItem);
+        
         menuBar.add(fileMenu);
+        menuBar.add(editMenu);
+        menuBar.add(controlMenu);
         menuBar.add(loopMenu);
         menuBar.add(varsMenu);
         menuBar.add(animationMenu);
-
-        // Add buttons and menu bar to button panel
-        buttonPanel.add(sendButton);
-        buttonPanel.add(fillButton);
-        buttonPanel.add(clearScreenButton);
-        buttonPanel.add(undoButton);
-        buttonPanel.add(encodingButton);
-        buttonPanel.add(menuBar);
-
-        inputPanel.add(buttonPanel, BorderLayout.EAST);
-        add(inputPanel, BorderLayout.SOUTH);
+        menuBar.add(helpMenu);
+        
+        return menuBar;
     }
-
+    
     /********************************************************************
      * METHOD: setupEventHandlers
      * DESCRIPTION: Sets up event listeners for all interactive components
@@ -299,10 +414,19 @@ public class UserInterface3 extends JFrame {
      * RETURN VALUE: None
      ********************************************************************/
     private void setupEventHandlers() {
-        // Send button and input field - FIXED: Use the explicitly created button
-        sendButton.addActionListener(e -> processInput());
-        inputField.addActionListener(e -> processInput());
-
+        // Execute button - runs entire program
+        executeButton.addActionListener(e -> executeProgram());
+        
+        // Stop button - stops program execution
+        stopButton.addActionListener(e -> stopProgram());
+        
+        // Clear code button
+        clearCodeButton.addActionListener(e -> {
+            inputArea.setText("");
+            updateLineNumbers();
+            ioHandler.appendToHistory("System: Code editor cleared\n");
+        });
+        
         // Fill toggle button
         fillButton.addActionListener(e -> {
             boolean fillMode = fillButton.isSelected();
@@ -310,14 +434,14 @@ public class UserInterface3 extends JFrame {
             fillButton.setText(fillMode ? "Fill: ON" : "Fill: OFF");
             ioHandler.appendToHistory("System: Fill mode " + (fillMode ? "enabled\n" : "disabled\n"));
         });
-
+        
         // Clear screen button
         clearScreenButton.addActionListener(e -> {
             codeGeneration.clearScreen(ioHandler);
             drawingPanel.repaint();
             ioHandler.appendToHistory("System: Screen cleared\n");
         });
-
+        
         // Encoding mode button
         encodingButton.addActionListener(e -> {
             encodingMode = encodingButton.isSelected();
@@ -329,33 +453,52 @@ public class UserInterface3 extends JFrame {
             } else {
                 ioHandler.appendToHistory("System: Encoding mode disabled\n");
             }
-        });// Undo button
+        });
+        
+        // Undo button
         undoButton.addActionListener(e -> {
-            if (codeGeneration.getShapes().size() > 0) {
-                codeGeneration.getShapes().remove(codeGeneration.getShapes().size() - 1);
+            if (codeGeneration.undoLastCommand(ioHandler)) {
                 drawingPanel.repaint();
-                ioHandler.appendToHistory("System: Last shape undone\n");
-            } else {
-                ioHandler.appendToHistory("System: No shapes to undo\n");
             }
         });
+        
+        // Interpreter mode button
         interpreterModeButton.addActionListener(e -> {
             boolean verbose = interpreterModeButton.isSelected();
             interpreter.setVerboseMode(verbose);
             interpreterModeButton.setText(verbose ? "Interpreter: Verbose" : "Interpreter: Actual");
             ioHandler.appendToHistory("System: Interpreter mode set to " + 
-                (verbose ? "verbose\n" : "actual\n"));
+                    (verbose ? "verbose\n" : "actual\n"));
         });
-     // Add keyboard shortcut for undo (Ctrl+Z)
-        inputField.addKeyListener(new KeyAdapter() {
+        
+        // Add keyboard shortcuts
+        inputArea.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_Z) {
-                    undoButton.doClick(); // Trigger the undo button action
+                if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    executeProgram();
+                    e.consume();
+                } else if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_S) {
+                    saveCodeToFile();
+                    e.consume();
+                } else if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_F) {
+                    formatCode();
+                    e.consume();
+                } else if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_PERIOD) {
+                    stopProgram(); // Ctrl+. to stop
+                    e.consume();
+                } else if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_N) {
+                    inputArea.setText("");
+                    updateLineNumbers();
+                    ioHandler.appendToHistory("System: New file created\n");
+                    e.consume();
+                } else if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_O) {
+                    openFile();
                     e.consume();
                 }
             }
         });
+        
         // Mouse listener for polygon drawing
         drawingPanel.addMouseListener(new MouseAdapter() {
             @Override
@@ -367,9 +510,9 @@ public class UserInterface3 extends JFrame {
                 }
             }
         });
-
+        
         // Add keyboard history navigation (UP and DOWN arrows)
-        inputField.addKeyListener(new KeyAdapter() {
+        inputArea.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_UP) {
@@ -377,21 +520,21 @@ public class UserInterface3 extends JFrame {
                         if (historyIndex > 0) {
                             historyIndex--;
                         }
-                        inputField.setText(commandHistory.get(historyIndex));
+                        inputArea.setText(commandHistory.get(historyIndex));
                         // Move cursor to end of text for easy editing
-                        inputField.setCaretPosition(inputField.getText().length());
+                        inputArea.setCaretPosition(inputArea.getText().length());
                     }
                     e.consume(); // Prevent default behavior
                 } else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
                     if (!commandHistory.isEmpty()) {
                         if (historyIndex < commandHistory.size() - 1) {
                             historyIndex++;
-                            inputField.setText(commandHistory.get(historyIndex));
+                            inputArea.setText(commandHistory.get(historyIndex));
                             // Move cursor to end of text for easy editing
-                            inputField.setCaretPosition(inputField.getText().length());
+                            inputArea.setCaretPosition(inputArea.getText().length());
                         } else {
                             historyIndex = commandHistory.size();
-                            inputField.setText("");
+                            inputArea.setText("");
                         }
                     }
                     e.consume(); // Prevent default behavior
@@ -399,77 +542,172 @@ public class UserInterface3 extends JFrame {
             }
         });
     }
-
+    
     /********************************************************************
-     * METHOD: processInput
-     * DESCRIPTION: Processes user input from the text field
+     * METHOD: executeProgram
+     * DESCRIPTION: Executes the entire program from the code editor
      * PARAMETERS: None
      * RETURN VALUE: None
      ********************************************************************/
-    private void processInput() {
-        String text = inputField.getText().trim();
-        if (text.isEmpty()) {
+    private void executeProgram() {
+        String program = inputArea.getText().trim();
+        if (program.isEmpty()) {
+            ioHandler.appendToHistory("System: No code to execute\n");
             return;
         }
-
-        // Add to command history
-        commandHistory.add(text);
-        historyIndex = commandHistory.size(); // Reset to end of history
-        inputField.setText("");
-
-        // Handle encoding mode commands
-        if (encodingMode || text.equalsIgnoreCase("show encoding") || text.equalsIgnoreCase("encode")) {
-            if (text.equalsIgnoreCase("show encoding")) {
-                displayEncodingState();
-            } else if (text.equalsIgnoreCase("clear encoding")) {
-                tokenEncoder.clear();
-                ioHandler.appendToHistory("System: Encoding state cleared\n");
-            } else {
-                // Encode the command
-                List<Integer> encodedLine = tokenEncoder.encodeCommand(text);
-                ioHandler.appendToHistory("Encoded: " + encodedLine + "\n");
-                
-                // Also process normally for drawing
-                processCommandNormally(text);
-            }
-        } else {
-            processCommandNormally(text);
+        
+        // Don't start new program if one is already running
+        if (programRunning) {
+            ioHandler.appendToHistory("System: Program is already running. Stop it first.\n");
+            return;
         }
-        // Check if this is an interpreter command
-        if (text.startsWith("integer") || text.startsWith("input") || text.startsWith("print")) {
-            processInterpreterCommand(text);
-        } else {
-            // Process as regular command (your existing logic)
-            processCommandNormally(text);
+        
+        // Update UI state
+        programRunning = true;
+        executeButton.setEnabled(false);
+        stopButton.setEnabled(true);
+        
+        ioHandler.appendToHistory("\n=== EXECUTING PROGRAM ===\n");
+        
+        // Save to command history
+        commandHistory.add(program);
+        historyIndex = commandHistory.size();
+        
+        // Run program in separate thread so UI remains responsive
+        programThread = new Thread(() -> {
+            try {
+                // Parse and execute the program
+                CodeBlockParser parser = new CodeBlockParser();
+                List<CodeStatement> statements = parser.parseProgram(program);
+                
+                for (CodeStatement stmt : statements) {
+                    // Check if thread was interrupted (user pressed stop)
+                    if (Thread.currentThread().isInterrupted()) {
+                        throw new InterruptedException("Program stopped by user");
+                    }
+                    
+                    if (encodingMode) {
+                        List<Integer> encodedLine = tokenEncoder.encodeCommand(stmt.getSource());
+                        ioHandler.appendToHistory("Encoded: " + encodedLine + "\n");
+                    }
+                    
+                    // Process the statement
+                    processCodeStatement(stmt);
+                    
+                    // Small delay to make execution visible
+                    try {
+                        Thread.sleep(50); // 50ms between statements
+                    } catch (InterruptedException e) {
+                        throw e; // Re-throw to stop execution
+                    }
+                }
+                
+                // Program completed successfully
+                SwingUtilities.invokeLater(() -> {
+                    ioHandler.appendToHistory("=== PROGRAM COMPLETED ===\n");
+                    programRunning = false;
+                    executeButton.setEnabled(true);
+                    stopButton.setEnabled(false);
+                    programThread = null;
+                });
+                
+            } catch (InterruptedException e) {
+                // Program was stopped by user
+                SwingUtilities.invokeLater(() -> {
+                    ioHandler.appendToHistory("=== PROGRAM STOPPED ===\n");
+                    programRunning = false;
+                    executeButton.setEnabled(true);
+                    stopButton.setEnabled(false);
+                    programThread = null;
+                });
+            } catch (Exception e) {
+                // Other errors
+                SwingUtilities.invokeLater(() -> {
+                    ioHandler.appendToHistory("System: Error executing program: " + e.getMessage() + "\n");
+                    ioHandler.appendToHistory("=== PROGRAM ABORTED ===\n");
+                    programRunning = false;
+                    executeButton.setEnabled(true);
+                    stopButton.setEnabled(false);
+                    programThread = null;
+                });
+                e.printStackTrace();
+            }
+        });
+        
+        programThread.start();
+        drawingPanel.repaint();
+    }
+    
+    /********************************************************************
+     * METHOD: stopProgram
+     * DESCRIPTION: Stops the currently running program
+     * PARAMETERS: None
+     * RETURN VALUE: None
+     ********************************************************************/
+    private void stopProgram() {
+        if (programRunning && programThread != null) {
+            programThread.interrupt();
+            programRunning = false;
+            
+            // Update UI state
+            stopButton.setEnabled(false);
+            executeButton.setEnabled(true);
+            
+            ioHandler.appendToHistory("System: Program execution stopped by user\n");
+            
+            // Also stop any animations that might be running
+            animationSystem.stopAnimation();
         }
     }
     
-
     /********************************************************************
-     * METHOD: processCommandNormally
-     * DESCRIPTION: Processes user input normally (without encoding)
-     * PARAMETERS: String text - the input text
+     * METHOD: processCodeStatement
+     * DESCRIPTION: Processes a single code statement (handles control structures)
+     *              Now checks for interruption
+     * PARAMETERS: CodeStatement stmt - the statement to process
      * RETURN VALUE: None
      ********************************************************************/
-    private void processCommandNormally(String text) {
-        ioHandler.appendToHistory("You: " + text + "\n");
-        
-        // Check if this is a for loop
-        if (text.toLowerCase().startsWith("for")) {
-            processForLoop(text);
+    private void processCodeStatement(CodeStatement stmt) {
+        // Check if thread was interrupted
+        if (Thread.currentThread().isInterrupted()) {
             return;
         }
-
-        String lowerCommand = text.toLowerCase();
-        String firstWord = lowerCommand.split(" ")[0];
         
-        // Use switch-case for organized command handling
-        switch (firstWord) {
+        String line = stmt.getSource().trim();
+        
+        // Skip empty lines
+        if (line.isEmpty()) {
+            return;
+        }
+        
+        // Log the line being executed
+        ioHandler.appendToHistory("Executing: " + line + "\n");
+        
+        // Handle interpreter commands
+        if (line.startsWith("integer ") || line.startsWith("input ") || 
+            line.startsWith("print ") || line.startsWith("if ") || 
+            line.startsWith("while ") || line.startsWith("for ")) {
+            interpreter.interpretLine(line);
+            return;
+        }
+        
+        // Handle for loops (legacy syntax)
+        if (line.toLowerCase().startsWith("for")) {
+            processForLoop(line);
+            return;
+        }
+        
+        // Process regular commands
+        String lowerCommand = line.toLowerCase();
+        
+        // Use switch for better organization
+        switch (getFirstWord(lowerCommand)) {
             case "polygon":
                 ioHandler.setDrawingPolygon(true);
                 ioHandler.clearPolygonPoints();
-                ioHandler.appendToHistory("System: Click on the drawing area to add polygon points. Type 'endpolygon' when done.\n");
+                ioHandler.appendToHistory("System: Click to add polygon points. Type 'endpolygon' when done.\n");
                 break;
+                
             case "endpolygon":
                 if (ioHandler.isDrawingPolygon()) {
                     ioHandler.setDrawingPolygon(false);
@@ -481,13 +719,15 @@ public class UserInterface3 extends JFrame {
                     }
                 }
                 break;
+                
             case "clearpolygon":
                 ioHandler.clearPolygonPoints();
                 drawingPanel.repaint();
                 ioHandler.appendToHistory("System: Polygon points cleared\n");
                 break;
+                
             case "fill":
-                String[] fillParts = text.split(" ");
+                String[] fillParts = line.split(" ");
                 if (fillParts.length >= 2) {
                     if (fillParts[1].equalsIgnoreCase("on")) {
                         codeGeneration.setFillShape(true);
@@ -502,8 +742,9 @@ public class UserInterface3 extends JFrame {
                     }
                 }
                 break;
+                
             case "set":
-                String[] setParts = text.substring(4).split("=");
+                String[] setParts = line.substring(4).split("=");
                 if (setParts.length == 2) {
                     String varName = setParts[0].trim();
                     try {
@@ -517,70 +758,365 @@ public class UserInterface3 extends JFrame {
                     ioHandler.appendToHistory("System: Invalid set command. Use: set var=value\n");
                 }
                 break;
+                
             case "animation":
-                if (text.length() > 10) {
-                    String animName = text.substring(10).trim();
+                if (line.length() > 10) {
+                    String animName = line.substring(10).trim();
                     animationSystem.createAnimation(animName);
                 } else {
-                    ioHandler.appendToHistory("System: Usage: animation <name>!\n");
+                    ioHandler.appendToHistory("System: Usage: animation <name>\n");
                 }
                 break;
+                
             case "keyframe":
-                if (text.length() > 9) {
-                    String frameName = text.substring(9).trim();
+                if (line.length() > 9) {
+                    String frameName = line.substring(9).trim();
                     animationSystem.addKeyframe(frameName);
                 } else {
-                    ioHandler.appendToHistory("System: Usage: keyframe <name>!\n");
+                    ioHandler.appendToHistory("System: Usage: keyframe <name>\n");
                 }
                 break;
+                
             case "play":
-                if (text.length() > 5) {
-                    String animName = text.substring(5).trim();
+                if (line.length() > 5) {
+                    String animName = line.substring(5).trim();
                     animationSystem.playAnimation(animName);
                 } else {
-                    ioHandler.appendToHistory("System: Usage: play <animationName>!\n");
+                    ioHandler.appendToHistory("System: Usage: play <animationName>\n");
                 }
                 break;
+                
             case "stop":
                 animationSystem.stopAnimation();
                 break;
+                
             case "delay":
-                if (text.length() > 6) {
+                if (line.length() > 6) {
                     try {
-                        long delay = Long.parseLong(text.substring(6).trim());
+                        long delay = Long.parseLong(line.substring(6).trim());
                         animationSystem.setFrameDelay(delay);
                     } catch (NumberFormatException e) {
-                        ioHandler.appendToHistory("System: Invalid delay value. Usage: delay <milliseconds>!\n");
+                        ioHandler.appendToHistory("System: Invalid delay value. Usage: delay <milliseconds>\n");
                     }
                 } else {
-                    ioHandler.appendToHistory("System: Usage: delay <milliseconds>!\n");
+                    ioHandler.appendToHistory("System: Usage: delay <milliseconds>\n");
                 }
                 break;
+                
             case "clear":
                 codeGeneration.clearScreen(ioHandler);
                 drawingPanel.repaint();
                 ioHandler.appendToHistory("System: Screen cleared\n");
                 break;
+                
             case "help":
                 displayHelp();
                 break;
+                
+            case "undo":
+                if (codeGeneration.undoLastCommand(ioHandler)) {
+                    drawingPanel.repaint();
+                }
+                break;
+                
+            case "loop":
+                // Start loop recording
+                if (line.toLowerCase().equals("loop start") || line.toLowerCase().equals("start loop")) {
+                    codeGeneration.startLoopRecording(ioHandler);
+                    ioHandler.appendToHistory("System: Started recording loop\n");
+                } 
+                // End loop recording
+                else if (line.toLowerCase().startsWith("loop end") || line.toLowerCase().startsWith("end loop")) {
+                    String loopName = "loop1"; // Default name
+                    String[] parts = line.split(" ");
+                    if (parts.length > 2) {
+                        loopName = parts[2];
+                    }
+                    codeGeneration.endLoopRecording(loopName, ioHandler);
+                }
+                // Play loop
+                else if (line.toLowerCase().startsWith("loop play") || line.toLowerCase().startsWith("play loop")) {
+                    String loopName = "loop1"; // Default name
+                    String[] parts = line.split(" ");
+                    if (parts.length > 2) {
+                        loopName = parts[2];
+                    }
+                    codeGeneration.playLoop(loopName, drawingPanel, ioHandler);
+                }
+                break;
+                
+            case "show":
+                if (line.toLowerCase().contains("encoding")) {
+                    displayEncodingState();
+                } else if (line.toLowerCase().contains("var")) {
+                    ioHandler.showVariables();
+                }
+                break;
+                
+            case "clearencoding":
+                tokenEncoder.clear();
+                ioHandler.appendToHistory("System: Encoding state cleared\n");
+                break;
+                
             default:
                 // Process shape commands
-                if (lowerCommand.startsWith("circle") || lowerCommand.startsWith("triangle") || 
-                    lowerCommand.startsWith("rectangle") || lowerCommand.startsWith("square") || 
-                    lowerCommand.startsWith("points")) {
+                if (isShapeCommand(lowerCommand)) {
                     if (codeGeneration.isRecordingLoop()) {
-                        processCommandForLoop(text);
+                        processCommandForLoop(line);
                     } else {
-                        processCommand(text);
+                        processDrawingCommand(line);
                     }
                 } else {
-                    ioHandler.appendToHistory("System: Unknown command: " + text + "\nType 'help' for available commands\n");
+                    // Check for comment lines
+                    if (!line.startsWith("#") && !line.startsWith("//")) {
+                        ioHandler.appendToHistory("System: Unknown command: " + line + "\nType 'help' for available commands\n");
+                    }
                 }
                 break;
         }
     }
-
+    
+    /********************************************************************
+     * METHOD: getFirstWord
+     * DESCRIPTION: Extracts the first word from a command string
+     * PARAMETERS: String command - the command string
+     * RETURN VALUE: String - the first word
+     ********************************************************************/
+    private String getFirstWord(String command) {
+        String[] parts = command.split("\\s+");
+        return parts.length > 0 ? parts[0] : "";
+    }
+    
+    /********************************************************************
+     * METHOD: isShapeCommand
+     * DESCRIPTION: Checks if a command is a shape drawing command
+     * PARAMETERS: String command - the command to check
+     * RETURN VALUE: boolean - true if it's a shape command
+     ********************************************************************/
+    private boolean isShapeCommand(String command) {
+        return command.startsWith("circle") || command.startsWith("triangle") || 
+               command.startsWith("rectangle") || command.startsWith("square") || 
+               command.startsWith("points") || command.startsWith("line");
+    }
+    
+    /********************************************************************
+     * METHOD: processDrawingCommand
+     * DESCRIPTION: Processes a drawing command
+     * PARAMETERS: String command - the drawing command
+     * RETURN VALUE: None
+     ********************************************************************/
+    private void processDrawingCommand(String command) {
+        String lowerCommand = command.toLowerCase();
+        if (lowerCommand.startsWith("circle")) {
+            codeGeneration.processCircleCommand(command, ioHandler);
+        } else if (lowerCommand.startsWith("triangle")) {
+            codeGeneration.processTriangleCommand(command, ioHandler);
+        } else if (lowerCommand.startsWith("rectangle")) {
+            codeGeneration.processRectangleCommand(command, ioHandler);
+        } else if (lowerCommand.startsWith("square")) {
+            codeGeneration.processSquareCommand(command, ioHandler);
+        } else if (lowerCommand.startsWith("points")) {
+            codeGeneration.processPointsCommand(command, ioHandler);
+        } else if (lowerCommand.startsWith("line")) {
+            codeGeneration.processLineCommand(command, ioHandler);
+        } else {
+            ioHandler.appendToHistory("System: Unknown command: " + command + "\n");
+        }
+        drawingPanel.repaint();
+    }
+    
+    /********************************************************************
+     * METHOD: processCommandForLoop
+     * DESCRIPTION: Processes a drawing command for loop recording
+     * PARAMETERS: String command - the command to process
+     * RETURN VALUE: None
+     ********************************************************************/
+    private void processCommandForLoop(String command) {
+        String lowerCommand = command.toLowerCase();
+        if (lowerCommand.startsWith("circle")) {
+            codeGeneration.processCircleCommandForLoop(command, ioHandler);
+        } else if (lowerCommand.startsWith("triangle")) {
+            codeGeneration.processTriangleCommandForLoop(command, ioHandler);
+        } else if (lowerCommand.startsWith("rectangle")) {
+            codeGeneration.processRectangleCommandForLoop(command, ioHandler);
+        } else if (lowerCommand.startsWith("square")) {
+            codeGeneration.processSquareCommandForLoop(command, ioHandler);
+        } else if (lowerCommand.startsWith("points")) {
+            codeGeneration.processPointsCommandForLoop(command, ioHandler);
+        } else if (lowerCommand.startsWith("line")) {
+            codeGeneration.processLineCommandForLoop(command, ioHandler);
+        } else {
+            ioHandler.appendToHistory("System: Unknown command: " + command + "\n");
+        }
+        drawingPanel.repaint();
+    }
+    
+    /********************************************************************
+     * METHOD: updateLineNumbers
+     * DESCRIPTION: Updates the line number display based on editor content
+     * PARAMETERS: None
+     * RETURN VALUE: None
+     ********************************************************************/
+    private void updateLineNumbers() {
+        String content = inputArea.getText();
+        int lines = content.isEmpty() ? 1 : content.split("\n").length;
+        StringBuilder numbers = new StringBuilder();
+        for (int i = 1; i <= lines; i++) {
+            numbers.append(i).append("\n");
+        }
+        lineNumberArea.setText(numbers.toString());
+    }
+    
+    /********************************************************************
+     * METHOD: insertTemplate
+     * DESCRIPTION: Inserts a code template at the current cursor position
+     * PARAMETERS: String type - the type of template to insert
+     * RETURN VALUE: None
+     ********************************************************************/
+    private void insertTemplate(String type) {
+        String template = "";
+        
+        switch (type) {
+            case "if":
+                template = "if (condition) {\n    // code to execute if true\n}\n";
+                break;
+            case "while":
+                template = "while (condition) {\n    // code to repeat\n}\n";
+                break;
+            case "for":
+                template = "for (variable = start; condition; increment) {\n    // loop body\n}\n";
+                break;
+            case "block":
+                template = "{\n    // code block\n}\n";
+                break;
+        }
+        
+        inputArea.insert(template, inputArea.getCaretPosition());
+        updateLineNumbers();
+    }
+    
+    /********************************************************************
+     * METHOD: formatCode
+     * DESCRIPTION: Formats the code with proper indentation
+     * PARAMETERS: None
+     * RETURN VALUE: None
+     ********************************************************************/
+    private void formatCode() {
+        String code = inputArea.getText();
+        CodeFormatter formatter = new CodeFormatter();
+        String formatted = formatter.format(code);
+        inputArea.setText(formatted);
+        updateLineNumbers();
+        ioHandler.appendToHistory("System: Code formatted\n");
+    }
+    
+    /********************************************************************
+     * METHOD: commentSelection
+     * DESCRIPTION: Comments or uncomments the selected lines
+     * PARAMETERS: None
+     * RETURN VALUE: None
+     ********************************************************************/
+    private void commentSelection() {
+        int start = inputArea.getSelectionStart();
+        int end = inputArea.getSelectionEnd();
+        
+        if (start == end) {
+            ioHandler.appendToHistory("System: No text selected\n");
+            return;
+        }
+        
+        try {
+            int startLine = inputArea.getLineOfOffset(start);
+            int endLine = inputArea.getLineOfOffset(end);
+            
+            String text = inputArea.getText();
+            String[] lines = text.split("\n");
+            
+            // Check if all selected lines are already commented
+            boolean allCommented = true;
+            for (int i = startLine; i <= endLine && i < lines.length; i++) {
+                if (!lines[i].trim().startsWith("//") && !lines[i].trim().isEmpty()) {
+                    allCommented = false;
+                    break;
+                }
+            }
+            
+            // Toggle comments
+            StringBuilder newText = new StringBuilder();
+            for (int i = 0; i < lines.length; i++) {
+                if (i >= startLine && i <= endLine) {
+                    if (allCommented) {
+                        // Remove comment
+                        if (lines[i].trim().startsWith("//")) {
+                            newText.append(lines[i].replaceFirst("//", ""));
+                        } else {
+                            newText.append(lines[i]);
+                        }
+                    } else {
+                        // Add comment
+                        newText.append("//").append(lines[i]);
+                    }
+                } else {
+                    newText.append(lines[i]);
+                }
+                if (i < lines.length - 1) {
+                    newText.append("\n");
+                }
+            }
+            
+            inputArea.setText(newText.toString());
+            updateLineNumbers();
+            ioHandler.appendToHistory("System: Lines " + (startLine + 1) + "-" + (endLine + 1) + 
+                    (allCommented ? " uncommented\n" : " commented\n"));
+        } catch (BadLocationException e) {
+            ioHandler.appendToHistory("System: Error commenting selection\n");
+        }
+    }
+    
+    /********************************************************************
+     * METHOD: saveCodeToFile
+     * DESCRIPTION: Saves the current code to a file using FileManager
+     * PARAMETERS: None
+     * RETURN VALUE: None
+     ********************************************************************/
+    private void saveCodeToFile() {
+        String content = inputArea.getText();
+        if (!content.trim().isEmpty()) {
+            File savedFile = fileManager.saveFile(content);
+            if (savedFile != null) {
+                ioHandler.appendToHistory("System: Code saved to " + savedFile.getName() + "\n");
+            }
+        } else {
+            ioHandler.appendToHistory("System: No code to save\n");
+        }
+    }
+    
+    /********************************************************************
+     * METHOD: openFile
+     * DESCRIPTION: Opens a file using FileManager
+     * PARAMETERS: None
+     * RETURN VALUE: None
+     ********************************************************************/
+    private void openFile() {
+        String content = fileManager.openFileWithRecentMenu();
+        if (content != null) {
+            inputArea.setText(content);
+            updateLineNumbers();
+            ioHandler.appendToHistory("System: File loaded into editor\n");
+        }
+    }
+    
+    /********************************************************************
+     * METHOD: loadProgramIntoEditor
+     * DESCRIPTION: Loads a program into the code editor
+     * PARAMETERS: String program - the program to load
+     * RETURN VALUE: None
+     ********************************************************************/
+    public void loadProgramIntoEditor(String program) {
+        inputArea.setText(program);
+        updateLineNumbers();
+    }
+    
     /********************************************************************
      * METHOD: displayEncodingState
      * DESCRIPTION: Displays the current encoding state (tables and program)
@@ -589,110 +1125,133 @@ public class UserInterface3 extends JFrame {
      ********************************************************************/
     private void displayEncodingState() {
         ioHandler.appendToHistory("\n=== ENCODING STATE ===\n");
-        
+
         // Display symbol table
         ioHandler.appendToHistory("Symbol Table:\n");
         Map<String, Integer> symbolTable = tokenEncoder.getSymbolTable();
         if (symbolTable.isEmpty()) {
-            ioHandler.appendToHistory("  No symbols defined\n");
+            ioHandler.appendToHistory(" No symbols defined\n");
         } else {
             for (Map.Entry<String, Integer> entry : symbolTable.entrySet()) {
-                ioHandler.appendToHistory("  " + entry.getValue() + " " + entry.getKey() + "\n");
+                ioHandler.appendToHistory(" " + entry.getValue() + " " + entry.getKey() + "\n");
             }
         }
-        
+
         // Display literal table
         ioHandler.appendToHistory("Literal Table:\n");
         Map<Integer, Integer> literalTable = tokenEncoder.getLiteralTable();
         if (literalTable.isEmpty()) {
-            ioHandler.appendToHistory("  No literals defined\n");
+            ioHandler.appendToHistory(" No literals defined\n");
         } else {
             for (Map.Entry<Integer, Integer> entry : literalTable.entrySet()) {
-                ioHandler.appendToHistory("  " + entry.getValue() + " " + entry.getKey() + "\n");
+                ioHandler.appendToHistory(" " + entry.getValue() + " " + entry.getKey() + "\n");
             }
         }
-        
+
         // Display encoded program
         ioHandler.appendToHistory("Encoded Program:\n");
         List<Integer> encodedProgram = tokenEncoder.getEncodedProgram();
-        if (encodedProgram.isEmpty()) {
-            ioHandler.appendToHistory("  No commands encoded yet\n");
-        } else {
-            ioHandler.appendToHistory("  " + encodedProgram + "\n");
-        }
-        
-        ioHandler.appendToHistory("======================\n");
-    }
 
+        if (encodedProgram.isEmpty()) {
+            ioHandler.appendToHistory(" No commands encoded yet\n");
+        } else {
+            ioHandler.appendToHistory(" " + encodedProgram + "\n");
+        }
+
+        ioHandler.appendToHistory("========================= \n");
+    }
+    
     /********************************************************************
      * METHOD: displayHelp
-     * DESCRIPTION: Displays the help message in the history area
+     * DESCRIPTION: Displays help message with available commands
      * PARAMETERS: None
      * RETURN VALUE: None
      ********************************************************************/
     private void displayHelp() {
-        ioHandler.appendToHistory("Available commands:\n");
+        ioHandler.appendToHistory("\n=== DRAWING CHAT APPLICATION - HELP ===\n");
+        ioHandler.appendToHistory("Write your program in the code editor below, then click 'Execute Code'.\n");
+        ioHandler.appendToHistory("Or use Ctrl+Enter to execute, Ctrl+. to stop.\n\n");
+        
+        ioHandler.appendToHistory("FILE OPERATIONS:\n");
+        ioHandler.appendToHistory("Ctrl+N - New file\n");
+        ioHandler.appendToHistory("Ctrl+O - Open file\n");
+        ioHandler.appendToHistory("Ctrl+S - Save file\n");
+        ioHandler.appendToHistory("File menu has Recent Files list\n\n");
+        
+        ioHandler.appendToHistory("BASIC SHAPES:\n");
         ioHandler.appendToHistory("circle, radius, x, y\n");
         ioHandler.appendToHistory("triangle, x1, y1, x2, y2, x3, y3\n");
         ioHandler.appendToHistory("rectangle, x1, y1, x2, y2\n");
-        ioHandler.appendToHistory("square, x, y, size\n\n");
+        ioHandler.appendToHistory("square, x, y, size\n");
+        ioHandler.appendToHistory("line, x1, y1, x2, y2\n\n");
         
-        ioHandler.appendToHistory("polygon - Start adding points by clicking on the drawing area\n");
+        ioHandler.appendToHistory("POLYGON COMMANDS:\n");
+        ioHandler.appendToHistory("polygon - Start adding points by clicking\n");
         ioHandler.appendToHistory("endpolygon - Finish drawing the polygon\n");
         ioHandler.appendToHistory("clearpolygon - Clear current polygon points\n");
-        ioHandler.appendToHistory("points, x1,y1 x2,y2 x3,y3 ... - Draw polygon with specified points\n\n");
+        ioHandler.appendToHistory("points, x1,y1 x2,y2 x3,y3 ... - Draw polygon with points\n\n");
         
-        ioHandler.appendToHistory("for(var=start;condition;increment): command - Execute a for loop\n");
-        ioHandler.appendToHistory(" Example: for(x=0;x<=200;x+=5): circle,50+x,250,250\n\n");
+        ioHandler.appendToHistory("CONTROL STRUCTURES:\n");
+        ioHandler.appendToHistory("if (condition) { ... } - Conditional execution\n");
+        ioHandler.appendToHistory("while (condition) { ... } - While loop\n");
+        ioHandler.appendToHistory("for (var=start; condition; increment) { ... } - For loop\n");
+        ioHandler.appendToHistory("Example: if (x < 100) { circle, 10, x, 100 }\n\n");
+        
+        ioHandler.appendToHistory("VARIABLES:\n");
         ioHandler.appendToHistory("set var=value - Set a variable (e.g., set size=50)\n");
-        ioHandler.appendToHistory("show vars - Show all variables\n");
-        ioHandler.appendToHistory("clear vars - Clear all variables\n\n");
-        ioHandler.appendToHistory("undo - Remove the last drawn shape (or Ctrl+Z)\n");
+        ioHandler.appendToHistory("Variables can be used in expressions: circle, size, x+10, y-20\n\n");
         
-        ioHandler.appendToHistory("fill on / fill off - Toggle fill mode for shapes\n");
-        ioHandler.appendToHistory("clear - Clear all shapes from the screen\n");
+        ioHandler.appendToHistory("INTERPRETER COMMANDS:\n");
+        ioHandler.appendToHistory("integer var = value; - Declare integer variable\n");
+        ioHandler.appendToHistory("input(var); - Get user input for variable\n");
+        ioHandler.appendToHistory("print(var); - Print variable value\n\n");
         
-        ioHandler.appendToHistory("\n=== ANIMATION COMMANDS ===\n");
-        ioHandler.appendToHistory("animation <name> - Create a new animation\n");
-        ioHandler.appendToHistory("keyframe <name> - Capture current shapes as a keyframe\n");
-        ioHandler.appendToHistory("play <animationName> - Play the specified animation\n");
-        ioHandler.appendToHistory("stop - Stop the current animation\n");
-        ioHandler.appendToHistory("delay <ms> - Set frame delay in milliseconds\n");
+        ioHandler.appendToHistory("ANIMATION COMMANDS:\n");
+        ioHandler.appendToHistory("animation <name> - Create new animation\n");
+        ioHandler.appendToHistory("keyframe <name> - Capture current shapes as keyframe\n");
+        ioHandler.appendToHistory("play <name> - Play animation\n");
+        ioHandler.appendToHistory("stop - Stop animation\n");
+        ioHandler.appendToHistory("delay <ms> - Set frame delay\n\n");
         
-        ioHandler.appendToHistory("\n=== ENCODING COMMANDS ===\n");
-        ioHandler.appendToHistory("Click 'Encoding: ON' button to enable encoding mode\n");
-        ioHandler.appendToHistory("show encoding - Display current encoding state\n");
-        ioHandler.appendToHistory("clear encoding - Clear encoding tables\n");
-        ioHandler.appendToHistory("In encoding mode, all commands are automatically encoded\n");
+        ioHandler.appendToHistory("OTHER COMMANDS:\n");
+        ioHandler.appendToHistory("fill on/off - Toggle fill mode\n");
+        ioHandler.appendToHistory("clear - Clear all shapes\n");
+        ioHandler.appendToHistory("undo - Undo last shape\n");
+        ioHandler.appendToHistory("loop start/end/play - Loop recording\n");
+        ioHandler.appendToHistory("help - Show this message\n");
+        ioHandler.appendToHistory("========================================\n");
     }
-
-    // ... (Keep all your existing methods like processForLoop, processCommand, etc. unchanged)
-    // Just make sure to include all the existing methods from your original code here
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new UserInterface3());
-    }
-
+    
     /********************************************************************
-     * METHOD: getHistoryArea
-     * DESCRIPTION: Returns the history text area component
+     * METHOD: showAbout
+     * DESCRIPTION: Shows the about dialog
      * PARAMETERS: None
-     * RETURN VALUE: JTextArea - the history area component
+     * RETURN VALUE: None
      ********************************************************************/
-    public JTextArea getHistoryArea() {
-        return historyArea;
+    private void showAbout() {
+        JOptionPane.showMessageDialog(this,
+            "Drawing Chat Application v2.0\n" +
+            "Enhanced with multi-line code editor\n" +
+            "and control structures (if/while)\n" +
+            "\n" +
+            "Modern File Manager with Recent Files\n" +
+            "Multi-threaded program execution\n" +
+            "\n" +
+            "© 2025 CS340 Programming Language Design",
+            "About",
+            JOptionPane.INFORMATION_MESSAGE);
     }
-
+    
     /********************************************************************
      * METHOD: getDrawingPanel
      * DESCRIPTION: Returns the drawing panel component
      * PARAMETERS: None
-     * RETURN VALUE: DrawingPanel - the drawing panel component
+     * RETURN VALUE: DrawingPanel - the drawing panel
      ********************************************************************/
     public DrawingPanel getDrawingPanel() {
         return drawingPanel;
     }
-
+    
     /********************************************************************
      * METHOD: getIOHandler
      * DESCRIPTION: Returns the IO handler instance
@@ -702,108 +1261,132 @@ public class UserInterface3 extends JFrame {
     public InputOutputHandler3 getIOHandler() {
         return ioHandler;
     }
-
+    
     /********************************************************************
      * METHOD: getCodeGeneration
      * DESCRIPTION: Returns the code generation instance
      * PARAMETERS: None
-     * RETURN VALUE: CodeGeneration3 - the code generation instance
+     * RETURN VALUE: CodeGeneration3 - the code generation
      ********************************************************************/
     public CodeGeneration3 getCodeGeneration() {
         return codeGeneration;
     }
     
     /********************************************************************
+     * METHOD: getAnimationSystem
+     * DESCRIPTION: Returns the animation system instance
+     * PARAMETERS: None
+     * RETURN VALUE: AnimationSystem - the animation system
+     ********************************************************************/
+    public AnimationSystem getAnimationSystem() {
+        return animationSystem;
+    }
+    
+    /********************************************************************
+     * METHOD: getTokenEncoder
+     * DESCRIPTION: Returns the token encoder instance
+     * PARAMETERS: None
+     * RETURN VALUE: TokenEncoder - the token encoder
+     ********************************************************************/
+    public TokenEncoder getTokenEncoder() {
+        return tokenEncoder;
+    }
+    
+    /********************************************************************
+     * METHOD: getFileManager
+     * DESCRIPTION: Returns the file manager instance
+     * PARAMETERS: None
+     * RETURN VALUE: FileManager - the file manager
+     ********************************************************************/
+    public FileManager getFileManager() {
+        return fileManager;
+    }
+    
+    /********************************************************************
      * METHOD: processForLoop
-     * DESCRIPTION: Processes a for loop command
-     * PARAMETERS: String command - the for loop command to process
+     * DESCRIPTION: Processes a for loop command (legacy support)
+     * PARAMETERS: String command - the for loop command
      * RETURN VALUE: None
      ********************************************************************/
     protected void processForLoop(String command) {
         try {
             // Parse for loop syntax: for(var=start;condition;increment): command
             String pattern = "for\\s*\\(\\s*([^=]+)=([^;]+);([^;]+);([^)]+)\\)\\s*:\\s*(.+)";
-            java.util.regex.Pattern regex = java.util.regex.Pattern.compile(pattern, java.util.regex.Pattern.CASE_INSENSITIVE);
+            java.util.regex.Pattern regex = java.util.regex.Pattern.compile(pattern, 
+                    java.util.regex.Pattern.CASE_INSENSITIVE);
             java.util.regex.Matcher matcher = regex.matcher(command);
-
+            
             if (matcher.find()) {
                 String varName = matcher.group(1).trim();
                 String startExpr = matcher.group(2).trim();
                 String condition = matcher.group(3).trim();
                 String increment = matcher.group(4).trim();
                 String loopCommand = matcher.group(5).trim();
-
-                // Parse start value (handle expressions like 50+x)
+                
+                // Parse start value
                 String expandedStart = expandVariables(startExpr);
                 int startValue = evaluateSimpleMath(expandedStart);
-
+                
                 // Set initial variable value
                 ioHandler.setVariable(varName, startValue);
-
+                
                 // Execute the loop
                 int iterationCount = 0;
-                int maxIterations = 1000; // Safety limit to prevent infinite loops
-
+                int maxIterations = 1000;
                 ioHandler.appendToHistory("System: Starting for loop with " + varName + "=" + startValue + "\n");
-
+                
                 while (iterationCount < maxIterations) {
                     // Check condition
                     if (!evaluateCondition(varName, condition)) {
                         ioHandler.appendToHistory("System: Loop condition failed, breaking\n");
                         break;
                     }
-
-                    // Execute the command with current variable value
+                    
+                    // Execute the command
                     String expandedCommand = expandVariables(loopCommand);
-                    ioHandler.appendToHistory("System: Iteration " + (iterationCount + 1) + ": " + varName + "=" + 
-                        ioHandler.getVariable(varName) + ", executing: " + expandedCommand + "\n");
-
+                    ioHandler.appendToHistory("System: Iteration " + (iterationCount + 1) + 
+                            ": " + varName + "=" + ioHandler.getVariable(varName) + 
+                            ", executing: " + expandedCommand + "\n");
+                    
                     if (codeGeneration.isRecordingLoop()) {
                         processCommandForLoop(expandedCommand);
                     } else {
-                        processCommand(expandedCommand);
+                        processDrawingCommand(expandedCommand);
                     }
-
+                    
                     // Apply increment
                     applyIncrement(varName, increment);
-
                     iterationCount++;
                 }
-
+                
                 if (iterationCount >= maxIterations) {
-                    ioHandler.appendToHistory("System: Loop terminated after " + maxIterations + " iterations safety limit\n");
+                    ioHandler.appendToHistory("System: Loop terminated after " + maxIterations + " iterations\n");
                 } else {
                     ioHandler.appendToHistory("System: Loop completed with " + iterationCount + " iterations\n");
                 }
-
+                
                 drawingPanel.repaint();
-
             } else {
-                ioHandler.appendToHistory("System: Invalid for loop syntax. Use: for(var=start;condition;increment): command\n");
-                ioHandler.appendToHistory("Example: for(x=0;x<=200;x+=5): circle,50+x,250,250\n");
+                ioHandler.appendToHistory("System: Invalid for loop syntax\n");
+                ioHandler.appendToHistory("Use: for(var=start;condition;increment): command\n");
             }
         } catch (Exception e) {
             ioHandler.appendToHistory("System: Error processing for loop: " + e.getMessage() + "\n");
-            e.printStackTrace();
         }
     }
-
+    
     /********************************************************************
      * METHOD: evaluateCondition
      * DESCRIPTION: Evaluates a loop condition
-     * PARAMETERS: String varName - the loop variable name
-     *             String condition - the condition to evaluate
-     * RETURN VALUE: boolean - true if condition is met, false otherwise
+     * PARAMETERS: String varName - variable name
+     *             String condition - condition string
+     * RETURN VALUE: boolean - true if condition met
      ********************************************************************/
     private boolean evaluateCondition(String varName, String condition) {
         try {
-            // Get current variable value
             Integer currentValue = ioHandler.getVariable(varName);
-            if (currentValue == null) {
-                return false;
-            }
-
-            // Parse condition (supports: var < value, var <= value, var > value, var >= value, var == value)
+            if (currentValue == null) return false;
+            
             if (condition.contains("<=")) {
                 String[] parts = condition.split("<=");
                 if (parts.length == 2 && parts[0].trim().equals(varName)) {
@@ -841,30 +1424,24 @@ public class UserInterface3 extends JFrame {
                     return currentValue != compareValue;
                 }
             }
-
             return false;
         } catch (Exception e) {
-            ioHandler.appendToHistory("System: Error evaluating condition: " + e.getMessage() + "\n");
             return false;
         }
     }
-
+    
     /********************************************************************
      * METHOD: applyIncrement
-     * DESCRIPTION: Applies an increment to a variable
-     * PARAMETERS: String varName - the variable name
-     *             String increment - the increment expression
+     * DESCRIPTION: Applies increment to a variable
+     * PARAMETERS: String varName - variable name
+     *             String increment - increment expression
      * RETURN VALUE: None
      ********************************************************************/
     private void applyIncrement(String varName, String increment) {
         try {
             Integer currentValue = ioHandler.getVariable(varName);
-            if (currentValue == null) {
-                ioHandler.appendToHistory("System: Variable " + varName + " not found\n");
-                return;
-            }
-
-            // Parse increment (supports: `var++`, `var--`, `var+=value`, `var-=value`, `var=value`)
+            if (currentValue == null) return;
+            
             if (increment.equals(varName + "++")) {
                 ioHandler.setVariable(varName, currentValue + 1);
             } else if (increment.equals(varName + "--")) {
@@ -887,84 +1464,43 @@ public class UserInterface3 extends JFrame {
                     int newValue = ioHandler.parseValue(parts[1].trim());
                     ioHandler.setVariable(varName, newValue);
                 }
-            } else {
-                ioHandler.appendToHistory("System: Invalid increment expression: " + increment + "\n");
             }
-
-            // Debug output to see the increment working
-            ioHandler.appendToHistory("System: Incremented " + varName + " to " +
-                ioHandler.getVariable(varName) + "\n");
-
         } catch (Exception e) {
-            ioHandler.appendToHistory("System: Error applying increment: " + e.getMessage() + "\n");
-            e.printStackTrace();
+            ioHandler.appendToHistory("System: Error applying increment\n");
         }
     }
-
+    
     /********************************************************************
      * METHOD: expandVariables
-     * DESCRIPTION: Expands variables and evaluates mathematical expressions
-     * PARAMETERS: String command - the command with variables
-     * RETURN VALUE: String - the command with variables expanded
+     * DESCRIPTION: Expands variables in a command string
+     * PARAMETERS: String command - command with variables
+     * RETURN VALUE: String - command with variables expanded
      ********************************************************************/
     private String expandVariables(String command) {
-        // First, replace all variables with their values
         String result = command;
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\b([a-zA-Z_][a-zA-Z0-9_]*)\\b");
-        java.util.regex.Matcher matcher = pattern.matcher(command);
-
-        while (matcher.find()) {
-            String varName = matcher.group(1);
-            Integer value = ioHandler.getVariable(varName);
-            if (value != null && !isReservedWord(varName)) {
-                result = result.replace(varName, value.toString());
-            }
+        Map<String, Integer> variables = ioHandler.getVariables();
+        
+        for (Map.Entry<String, Integer> entry : variables.entrySet()) {
+            String varName = entry.getKey();
+            String value = entry.getValue().toString();
+            result = result.replaceAll("\\b" + varName + "\\b", value);
         }
-
-        // Now evaluate mathematical expressions in parentheses
-        result = evaluateMathExpressions(result);
-
+        
         return result;
     }
-
-    /********************************************************************
-     * METHOD: evaluateMathExpressions
-     * DESCRIPTION: Evaluates mathematical expressions in parentheses
-     * PARAMETERS: String input - the string with math expressions
-     * RETURN VALUE: String - the string with math evaluated
-     ********************************************************************/
-    private String evaluateMathExpressions(String input) {
-        // Pattern to find expressions like (50+x) or (100+i*20)
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\(([^()]+)\\)");
-        java.util.regex.Matcher matcher = pattern.matcher(input);
-        StringBuffer result = new StringBuffer();
-
-        while (matcher.find()) {
-            String expression = matcher.group(1);
-            try {
-                int value = evaluateSimpleMath(expression);
-                matcher.appendReplacement(result, String.valueOf(value));
-            } catch (Exception e) {
-                // If we can't evaluate it, leave it as is
-                matcher.appendReplacement(result, "(" + expression + ")");
-            }
-        }
-        matcher.appendTail(result);
-
-        return result.toString();
-    }
-
+    
     /********************************************************************
      * METHOD: evaluateSimpleMath
      * DESCRIPTION: Evaluates simple mathematical expressions
-     * PARAMETERS: String expression - the math expression to evaluate
-     * RETURN VALUE: int - the result of the evaluation
+     * PARAMETERS: String expression - math expression
+     * RETURN VALUE: int - result of evaluation
      ********************************************************************/
     private int evaluateSimpleMath(String expression) {
         try {
             // Remove spaces
-            String expr = expression.replaceAll("\\s", "");
-            // Handle multiplication first (higher precedence)
+            String expr = expression.replaceAll("\\s+", "");
+            
+            // Handle multiplication first
             if (expr.contains("*")) {
                 String[] parts = expr.split("\\*");
                 if (parts.length == 2) {
@@ -973,7 +1509,7 @@ public class UserInterface3 extends JFrame {
                     return left * right;
                 }
             }
-
+            
             // Handle addition and subtraction
             if (expr.contains("+") && !expr.startsWith("+")) {
                 String[] parts = expr.split("\\+");
@@ -983,7 +1519,7 @@ public class UserInterface3 extends JFrame {
                     return left + right;
                 }
             }
-
+            
             if (expr.contains("-") && !expr.startsWith("-")) {
                 String[] parts = expr.split("-");
                 if (parts.length == 2) {
@@ -992,296 +1528,21 @@ public class UserInterface3 extends JFrame {
                     return left - right;
                 }
             }
-
-            // If no operators, just parse the number
+            
+            // If no operators, parse as integer
             return Integer.parseInt(expr);
         } catch (Exception e) {
-            throw new RuntimeException("Invalid mathematical expression: " + expression);
+            return 0;
         }
     }
-
+    
     /********************************************************************
-     * METHOD: isReservedWord
-     * DESCRIPTION: Checks if a word is a reserved keyword
-     * PARAMETERS: String word - the word to check
-     * RETURN VALUE: boolean - true if reserved, false otherwise
-     ********************************************************************/
-    private boolean isReservedWord(String word) {
-        String[] reservedWords = {"circle", "triangle", "rectangle", "square", "polygon",
-            "endpolygon", "clearpolygon", "points", "fill", "set",
-            "move", "home", "for", "loop"};
-        for (String reserved : reservedWords) {
-            if (reserved.equalsIgnoreCase(word)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /********************************************************************
-     * METHOD: processCommand
-     * DESCRIPTION: Processes a drawing command
-     * PARAMETERS: String command - the command to process
+     * METHOD: main
+     * DESCRIPTION: Main entry point for the application
+     * PARAMETERS: String[] args - command line arguments
      * RETURN VALUE: None
      ********************************************************************/
-    private void processCommand(String command) {
-        String lowerCommand = command.toLowerCase();
-
-        if (lowerCommand.startsWith("circle")) {
-            codeGeneration.processCircleCommand(command, ioHandler);
-        }
-        else if (lowerCommand.startsWith("triangle")) {
-            codeGeneration.processTriangleCommand(command, ioHandler);
-        }
-        else if (lowerCommand.startsWith("rectangle")) {
-            codeGeneration.processRectangleCommand(command, ioHandler);
-        }
-        else if (lowerCommand.startsWith("square")) {
-            codeGeneration.processSquareCommand(command, ioHandler);
-        }
-        else if (lowerCommand.startsWith("points")) {
-            codeGeneration.processPointsCommand(command, ioHandler);
-        }
-        else {
-            ioHandler.appendToHistory("System: Unknown command: " + command + "\n");
-        }
-
-        drawingPanel.repaint();
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new UserInterface3());
     }
-
-    /********************************************************************
-     * METHOD: processCommandForLoop
-     * DESCRIPTION: Processes a drawing command for loop recording
-     * PARAMETERS: String command - the command to process
-     * RETURN VALUE: None
-     ********************************************************************/
-    private void processCommandForLoop(String command) {
-        String lowerCommand = command.toLowerCase();
-
-        if (lowerCommand.startsWith("circle")) {
-            codeGeneration.processCircleCommandForLoop(command, ioHandler);
-        }
-        else if (lowerCommand.startsWith("triangle")) {
-            codeGeneration.processTriangleCommandForLoop(command, ioHandler);
-        }
-        else if (lowerCommand.startsWith("rectangle")) {
-            codeGeneration.processRectangleCommandForLoop(command, ioHandler);
-        }
-        else if (lowerCommand.startsWith("square")) {
-            codeGeneration.processSquareCommandForLoop(command, ioHandler);
-        }
-        else if (lowerCommand.startsWith("points")) {
-            codeGeneration.processPointsCommandForLoop(command, ioHandler);
-        }
-        else {
-            ioHandler.appendToHistory("System: Unknown command: " + command + "\n");
-        }
-
-        drawingPanel.repaint();
-    }
-    private void processInterpreterCommand(String text) {
-        if (text.startsWith("integer") || text.startsWith("input") || text.startsWith("print")) {
-            interpreter.interpretLine(text);
-        } else {
-            // Process as regular drawing command
-            processCommandNormally(text);
-        }
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class DrawingPanel extends JPanel {
-    private InputOutputHandler3 ioHandler;
-    private CodeGeneration3 codeGeneration;
-    private Point mousePosition = new Point(-1, -1);
-    private Point fixedCrosshairPosition = null;
-    private boolean showCrosshair = false;
-    
-    /**************************************************************************
-    *    METHOD:    setIOHandler                                              *
-    *    DESCRIPTION:  Sets the input/output handler for the drawing panel    *
-    *    PARAMETERS:  InputOutputHandler ioHandler - the IO handler to set    *
-    *    RETURN VALUE:  None                                                  *
-    **************************************************************************/
-    public void setIOHandler(InputOutputHandler3 ioHandler) {
-        this.ioHandler = ioHandler;
-    }
-    
-    /**************************************************************************
-    *    METHOD:    setCodeGeneration                                         *
-    *    DESCRIPTION:  Sets the code generation for the drawing panel         *
-    *    PARAMETERS:  CodeGeneration codeGeneration - the code generation to set *
-    *    RETURN VALUE:  None                                                  *
-    **************************************************************************/
-    public void setCodeGeneration(CodeGeneration3 codeGeneration) {
-        this.codeGeneration = codeGeneration;
-        
-        // Add mouse motion listener to track mouse position
-        addMouseMotionListener(new MouseMotionAdapter() {
-            @Override
-            public void mouseMoved(MouseEvent e) {
-                mousePosition = e.getPoint();
-                if (fixedCrosshairPosition == null) {
-                    showCrosshair = true;
-                }
-                repaint();
-            }
-            
-            @Override
-            public void mouseDragged(MouseEvent e) {
-                mousePosition = e.getPoint();
-                if (fixedCrosshairPosition == null) {
-                    showCrosshair = true;
-                }
-                repaint();
-            }
-        });
-        
-        // Add mouse listener to hide crosshair when mouse leaves
-        addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseExited(MouseEvent e) {
-                if (fixedCrosshairPosition == null) {
-                    showCrosshair = false;
-                }
-                repaint();
-            }
-            
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                mousePosition = e.getPoint();
-                if (fixedCrosshairPosition == null) {
-                    showCrosshair = true;
-                }
-                repaint();
-            }
-            
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                // Set or clear fixed crosshair position on click
-                if (fixedCrosshairPosition == null) {
-                    // Set fixed crosshair at clicked position
-                    fixedCrosshairPosition = e.getPoint();
-                    showCrosshair = true;
-                    ioHandler.appendToHistory("Crosshair fixed at: (" + fixedCrosshairPosition.x + ", " + fixedCrosshairPosition.y + ")\n");
-                } else {
-                    // Clear fixed crosshair
-                    fixedCrosshairPosition = null;
-                    showCrosshair = true;
-                    ioHandler.appendToHistory("Crosshair released\n");
-                }
-                repaint();
-            }
-        });
-    }
-    
-    /**************************************************************************
-    *    METHOD:    paintComponent                                            *
-    *    DESCRIPTION:  Overrides the paint method to draw shapes and UI       *
-    *                  elements on the panel                                  *
-    *    PARAMETERS:  Graphics g - the graphics context to draw on            *
-    *    RETURN VALUE:  None                                                  *
-    **************************************************************************/
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        
-        if (codeGeneration != null && ioHandler != null) {
-            // Draw all permanent shapes
-            for (CodeGeneration3.Shape shape : codeGeneration.getShapes()) {
-                shape.draw(g);
-            }
-            
-            // Draw loop shapes (temporary preview)
-            for (CodeGeneration3.Shape shape : codeGeneration.getLoopShapes()) {
-                shape.draw(g);
-            }
-            
-            // Draw current polygon points if in drawing mode
-            if (ioHandler.isDrawingPolygon()) {
-                g.setColor(Color.RED);
-                List<Point> polygonPoints = ioHandler.getPolygonPoints();
-                for (int i = 0; i < polygonPoints.size(); i++) {
-                    Point p = polygonPoints.get(i);
-                    g.fillOval(p.x - 3, p.y - 3, 6, 6);
-                    if (i > 0) {
-                        Point prev = polygonPoints.get(i - 1);
-                        g.drawLine(prev.x, prev.y, p.x, p.y);
-                    }
-                }
-            }
-            
-            // Draw crosshair and coordinates
-            if (showCrosshair) {
-                Point crosshairPoint = (fixedCrosshairPosition != null) ? fixedCrosshairPosition : mousePosition;
-                
-                g.setColor(Color.GRAY);
-                
-                // Draw horizontal line
-                g.drawLine(0, crosshairPoint.y, getWidth(), crosshairPoint.y);
-                
-                // Draw vertical line
-                g.drawLine(crosshairPoint.x, 0, crosshairPoint.x, getHeight());
-                
-                // Draw coordinates text
-                String coordText = "(" + crosshairPoint.x + ", " + crosshairPoint.y + ")";
-                g.setColor(Color.BLACK);
-                g.fillRect(crosshairPoint.x + 10, crosshairPoint.y - 15, 
-                          g.getFontMetrics().stringWidth(coordText) + 6, 20);
-                g.setColor(Color.WHITE);
-                g.drawString(coordText, crosshairPoint.x + 13, crosshairPoint.y);
-                
-                // Draw a small indicator at the crosshair intersection
-                g.setColor(Color.RED);
-                g.fillRect(crosshairPoint.x - 2, crosshairPoint.y - 2, 5, 5);
-                
-                // If crosshair is fixed, draw a different indicator
-                if (fixedCrosshairPosition != null) {
-                    g.setColor(Color.BLUE);
-                    g.drawRect(crosshairPoint.x - 4, crosshairPoint.y - 4, 9, 9);
-                }
-            }
-        }
-        
-    }
-    
-   
-
-
-
 }
