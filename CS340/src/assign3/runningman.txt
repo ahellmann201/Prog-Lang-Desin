@@ -1,10 +1,545 @@
-integer maxSize = 10;
-integer current = 1;
-while (current <= maxSize)
-  if (current <= 5)
-    circle, current*10, 200, 200;
-  else
-    square, 300, 200, current*8;
-  endif
-  current + 1 -> current;
-endwhile
+// ===== PENGUIN DANCE PARTY! =====
+// 10 penguins dancing side-by-side in sync!
+
+clear
+delay 500
+print("🐧 PENGUIN DANCE PARTY! 🐧")
+print("10 Penguins Dancing in Sync!")
+print("================================")
+
+// ===== CREATE ALL PENGUINS FIRST =====
+// We'll create all penguins first, then animate them together
+
+// Penguin positions (x coordinates spaced evenly)
+integer p1_x = 100
+integer p2_x = 200
+integer p3_x = 300
+integer p4_x = 400
+integer p5_x = 500
+integer p6_x = 600
+integer p7_x = 700
+integer p8_x = 800
+integer p9_x = 900
+integer p10_x = 1000
+
+// All penguins at same y position for alignment
+integer penguin_y = 300
+
+// ===== PENGUIN 1 (Leftmost) =====
+animation penguin1_dance
+// Frame 1 - Arms up, feet neutral
+circle, 40, p1_x, penguin_y
+circle, 18, p1_x, penguin_y-40
+circle, 4, p1_x-8, penguin_y-43
+circle, 4, p1_x+8, penguin_y-43
+triangle, p1_x, penguin_y-30, p1_x-3, penguin_y-25, p1_x+3, penguin_y-25
+circle, 12, p1_x-15, penguin_y+20
+circle, 12, p1_x+15, penguin_y+20
+// Arms up
+triangle, p1_x-50, penguin_y-30, p1_x-50, penguin_y, p1_x-20, penguin_y-15
+triangle, p1_x+50, penguin_y-30, p1_x+50, penguin_y, p1_x+20, penguin_y-15
+keyframe frame1_1
+
+clear
+
+// Frame 2 - Arms middle
+circle, 40, p1_x, penguin_y
+circle, 18, p1_x, penguin_y-40
+circle, 4, p1_x-8, penguin_y-43
+circle, 4, p1_x+8, penguin_y-43
+triangle, p1_x, penguin_y-30, p1_x-3, penguin_y-25, p1_x+3, penguin_y-25
+circle, 12, p1_x-15, penguin_y+20
+circle, 12, p1_x+15, penguin_y+20
+// Arms middle
+triangle, p1_x-40, penguin_y-10, p1_x-40, penguin_y+20, p1_x-15, penguin_y+5
+triangle, p1_x+40, penguin_y-10, p1_x+40, penguin_y+20, p1_x+15, penguin_y+5
+keyframe frame2_1
+
+clear
+
+// Frame 3 - Arms down
+circle, 40, p1_x, penguin_y
+circle, 18, p1_x, penguin_y-40
+circle, 4, p1_x-8, penguin_y-43
+circle, 4, p1_x+8, penguin_y-43
+triangle, p1_x, penguin_y-30, p1_x-3, penguin_y-25, p1_x+3, penguin_y-25
+circle, 12, p1_x-15, penguin_y+20
+circle, 12, p1_x+15, penguin_y+20
+// Arms down
+triangle, p1_x-30, penguin_y+10, p1_x-30, penguin_y+40, p1_x-10, penguin_y+25
+triangle, p1_x+30, penguin_y+10, p1_x+30, penguin_y+40, p1_x+10, penguin_y+25
+keyframe frame3_1
+
+clear
+
+// ===== PENGUIN 2 =====
+animation penguin2_dance
+// Frame 1
+circle, 38, p2_x, penguin_y
+circle, 16, p2_x, penguin_y-38
+circle, 4, p2_x-7, penguin_y-41
+circle, 4, p2_x+7, penguin_y-41
+triangle, p2_x, penguin_y-28, p2_x-3, penguin_y-23, p2_x+3, penguin_y-23
+circle, 11, p2_x-14, penguin_y+22
+circle, 11, p2_x+14, penguin_y+22
+triangle, p2_x-48, penguin_y-28, p2_x-48, penguin_y+2, p2_x-18, penguin_y-13
+triangle, p2_x+48, penguin_y-28, p2_x+48, penguin_y+2, p2_x+18, penguin_y-13
+keyframe frame1_2
+
+clear
+
+// Frame 2
+circle, 38, p2_x, penguin_y
+circle, 16, p2_x, penguin_y-38
+circle, 4, p2_x-7, penguin_y-41
+circle, 4, p2_x+7, penguin_y-41
+triangle, p2_x, penguin_y-28, p2_x-3, penguin_y-23, p2_x+3, penguin_y-23
+circle, 11, p2_x-14, penguin_y+22
+circle, 11, p2_x+14, penguin_y+22
+triangle, p2_x-38, penguin_y-8, p2_x-38, penguin_y+22, p2_x-13, penguin_y+7
+triangle, p2_x+38, penguin_y-8, p2_x+38, penguin_y+22, p2_x+13, penguin_y+7
+keyframe frame2_2
+
+clear
+
+// Frame 3
+circle, 38, p2_x, penguin_y
+circle, 16, p2_x, penguin_y-38
+circle, 4, p2_x-7, penguin_y-41
+circle, 4, p2_x+7, penguin_y-41
+triangle, p2_x, penguin_y-28, p2_x-3, penguin_y-23, p2_x+3, penguin_y-23
+circle, 11, p2_x-14, penguin_y+22
+circle, 11, p2_x+14, penguin_y+22
+triangle, p2_x-28, penguin_y+12, p2_x-28, penguin_y+42, p2_x-8, penguin_y+27
+triangle, p2_x+28, penguin_y+12, p2_x+28, penguin_y+42, p2_x+8, penguin_y+27
+keyframe frame3_2
+
+clear
+
+// ===== PENGUIN 3 =====
+animation penguin3_dance
+// Frame 1
+circle, 42, p3_x, penguin_y
+circle, 19, p3_x, penguin_y-42
+circle, 4, p3_x-8, penguin_y-45
+circle, 4, p3_x+8, penguin_y-45
+triangle, p3_x, penguin_y-32, p3_x-3, penguin_y-27, p3_x+3, penguin_y-27
+circle, 13, p3_x-16, penguin_y+18
+circle, 13, p3_x+16, penguin_y+18
+triangle, p3_x-52, penguin_y-32, p3_x-52, penguin_y-2, p3_x-22, penguin_y-17
+triangle, p3_x+52, penguin_y-32, p3_x+52, penguin_y-2, p3_x+22, penguin_y-17
+keyframe frame1_3
+
+clear
+
+// Frame 2
+circle, 42, p3_x, penguin_y
+circle, 19, p3_x, penguin_y-42
+circle, 4, p3_x-8, penguin_y-45
+circle, 4, p3_x+8, penguin_y-45
+triangle, p3_x, penguin_y-32, p3_x-3, penguin_y-27, p3_x+3, penguin_y-27
+circle, 13, p3_x-16, penguin_y+18
+circle, 13, p3_x+16, penguin_y+18
+triangle, p3_x-42, penguin_y-12, p3_x-42, penguin_y+18, p3_x-17, penguin_y+3
+triangle, p3_x+42, penguin_y-12, p3_x+42, penguin_y+18, p3_x+17, penguin_y+3
+keyframe frame2_3
+
+clear
+
+// Frame 3
+circle, 42, p3_x, penguin_y
+circle, 19, p3_x, penguin_y-42
+circle, 4, p3_x-8, penguin_y-45
+circle, 4, p3_x+8, penguin_y-45
+triangle, p3_x, penguin_y-32, p3_x-3, penguin_y-27, p3_x+3, penguin_y-27
+circle, 13, p3_x-16, penguin_y+18
+circle, 13, p3_x+16, penguin_y+18
+triangle, p3_x-32, penguin_y+8, p3_x-32, penguin_y+38, p3_x-12, penguin_y+23
+triangle, p3_x+32, penguin_y+8, p3_x+32, penguin_y+38, p3_x+12, penguin_y+23
+keyframe frame3_3
+
+clear
+
+// ===== PENGUIN 4 =====
+animation penguin4_dance
+// Frame 1
+circle, 36, p4_x, penguin_y
+circle, 15, p4_x, penguin_y-36
+circle, 3, p4_x-6, penguin_y-39
+circle, 3, p4_x+6, penguin_y-39
+triangle, p4_x, penguin_y-26, p4_x-2, penguin_y-21, p4_x+2, penguin_y-21
+circle, 10, p4_x-13, penguin_y+24
+circle, 10, p4_x+13, penguin_y+24
+triangle, p4_x-46, penguin_y-26, p4_x-46, penguin_y+4, p4_x-16, penguin_y-11
+triangle, p4_x+46, penguin_y-26, p4_x+46, penguin_y+4, p4_x+16, penguin_y-11
+keyframe frame1_4
+
+clear
+
+// Frame 2
+circle, 36, p4_x, penguin_y
+circle, 15, p4_x, penguin_y-36
+circle, 3, p4_x-6, penguin_y-39
+circle, 3, p4_x+6, penguin_y-39
+triangle, p4_x, penguin_y-26, p4_x-2, penguin_y-21, p4_x+2, penguin_y-21
+circle, 10, p4_x-13, penguin_y+24
+circle, 10, p4_x+13, penguin_y+24
+triangle, p4_x-36, penguin_y-6, p4_x-36, penguin_y+24, p4_x-11, penguin_y+9
+triangle, p4_x+36, penguin_y-6, p4_x+36, penguin_y+24, p4_x+11, penguin_y+9
+keyframe frame2_4
+
+clear
+
+// Frame 3
+circle, 36, p4_x, penguin_y
+circle, 15, p4_x, penguin_y-36
+circle, 3, p4_x-6, penguin_y-39
+circle, 3, p4_x+6, penguin_y-39
+triangle, p4_x, penguin_y-26, p4_x-2, penguin_y-21, p4_x+2, penguin_y-21
+circle, 10, p4_x-13, penguin_y+24
+circle, 10, p4_x+13, penguin_y+24
+triangle, p4_x-26, penguin_y+14, p4_x-26, penguin_y+44, p4_x-6, penguin_y+29
+triangle, p4_x+26, penguin_y+14, p4_x+26, penguin_y+44, p4_x+6, penguin_y+29
+keyframe frame3_4
+
+clear
+
+// ===== PENGUIN 5 =====
+animation penguin5_dance
+// Frame 1
+circle, 44, p5_x, penguin_y
+circle, 20, p5_x, penguin_y-44
+circle, 5, p5_x-9, penguin_y-47
+circle, 5, p5_x+9, penguin_y-47
+triangle, p5_x, penguin_y-34, p5_x-4, penguin_y-29, p5_x+4, penguin_y-29
+circle, 14, p5_x-17, penguin_y+16
+circle, 14, p5_x+17, penguin_y+16
+triangle, p5_x-54, penguin_y-34, p5_x-54, penguin_y-4, p5_x-24, penguin_y-19
+triangle, p5_x+54, penguin_y-34, p5_x+54, penguin_y-4, p5_x+24, penguin_y-19
+keyframe frame1_5
+
+clear
+
+// Frame 2
+circle, 44, p5_x, penguin_y
+circle, 20, p5_x, penguin_y-44
+circle, 5, p5_x-9, penguin_y-47
+circle, 5, p5_x+9, penguin_y-47
+triangle, p5_x, penguin_y-34, p5_x-4, penguin_y-29, p5_x+4, penguin_y-29
+circle, 14, p5_x-17, penguin_y+16
+circle, 14, p5_x+17, penguin_y+16
+triangle, p5_x-44, penguin_y-14, p5_x-44, penguin_y+16, p5_x-19, penguin_y+1
+triangle, p5_x+44, penguin_y-14, p5_x+44, penguin_y+16, p5_x+19, penguin_y+1
+keyframe frame2_5
+
+clear
+
+// Frame 3
+circle, 44, p5_x, penguin_y
+circle, 20, p5_x, penguin_y-44
+circle, 5, p5_x-9, penguin_y-47
+circle, 5, p5_x+9, penguin_y-47
+triangle, p5_x, penguin_y-34, p5_x-4, penguin_y-29, p5_x+4, penguin_y-29
+circle, 14, p5_x-17, penguin_y+16
+circle, 14, p5_x+17, penguin_y+16
+triangle, p5_x-34, penguin_y+6, p5_x-34, penguin_y+36, p5_x-14, penguin_y+21
+triangle, p5_x+34, penguin_y+6, p5_x+34, penguin_y+36, p5_x+14, penguin_y+21
+keyframe frame3_5
+
+clear
+
+// ===== PENGUIN 6 =====
+animation penguin6_dance
+// Frame 1
+circle, 37, p6_x, penguin_y
+circle, 16, p6_x, penguin_y-37
+circle, 4, p6_x-7, penguin_y-40
+circle, 4, p6_x+7, penguin_y-40
+triangle, p6_x, penguin_y-27, p6_x-3, penguin_y-22, p6_x+3, penguin_y-22
+circle, 11, p6_x-14, penguin_y+21
+circle, 11, p6_x+14, penguin_y+21
+triangle, p6_x-47, penguin_y-27, p6_x-47, penguin_y+3, p6_x-17, penguin_y-12
+triangle, p6_x+47, penguin_y-27, p6_x+47, penguin_y+3, p6_x+17, penguin_y-12
+keyframe frame1_6
+
+clear
+
+// Frame 2
+circle, 37, p6_x, penguin_y
+circle, 16, p6_x, penguin_y-37
+circle, 4, p6_x-7, penguin_y-40
+circle, 4, p6_x+7, penguin_y-40
+triangle, p6_x, penguin_y-27, p6_x-3, penguin_y-22, p6_x+3, penguin_y-22
+circle, 11, p6_x-14, penguin_y+21
+circle, 11, p6_x+14, penguin_y+21
+triangle, p6_x-37, penguin_y-7, p6_x-37, penguin_y+23, p6_x-12, penguin_y+8
+triangle, p6_x+37, penguin_y-7, p6_x+37, penguin_y+23, p6_x+12, penguin_y+8
+keyframe frame2_6
+
+clear
+
+// Frame 3
+circle, 37, p6_x, penguin_y
+circle, 16, p6_x, penguin_y-37
+circle, 4, p6_x-7, penguin_y-40
+circle, 4, p6_x+7, penguin_y-40
+triangle, p6_x, penguin_y-27, p6_x-3, penguin_y-22, p6_x+3, penguin_y-22
+circle, 11, p6_x-14, penguin_y+21
+circle, 11, p6_x+14, penguin_y+21
+triangle, p6_x-27, penguin_y+13, p6_x-27, penguin_y+43, p6_x-7, penguin_y+28
+triangle, p6_x+27, penguin_y+13, p6_x+27, penguin_y+43, p6_x+7, penguin_y+28
+keyframe frame3_6
+
+clear
+
+// ===== PENGUIN 7 =====
+animation penguin7_dance
+// Frame 1
+circle, 39, p7_x, penguin_y
+circle, 17, p7_x, penguin_y-39
+circle, 4, p7_x-7, penguin_y-42
+circle, 4, p7_x+7, penguin_y-42
+triangle, p7_x, penguin_y-29, p7_x-3, penguin_y-24, p7_x+3, penguin_y-24
+circle, 12, p7_x-15, penguin_y+19
+circle, 12, p7_x+15, penguin_y+19
+triangle, p7_x-49, penguin_y-29, p7_x-49, penguin_y+1, p7_x-19, penguin_y-14
+triangle, p7_x+49, penguin_y-29, p7_x+49, penguin_y+1, p7_x+19, penguin_y-14
+keyframe frame1_7
+
+clear
+
+// Frame 2
+circle, 39, p7_x, penguin_y
+circle, 17, p7_x, penguin_y-39
+circle, 4, p7_x-7, penguin_y-42
+circle, 4, p7_x+7, penguin_y-42
+triangle, p7_x, penguin_y-29, p7_x-3, penguin_y-24, p7_x+3, penguin_y-24
+circle, 12, p7_x-15, penguin_y+19
+circle, 12, p7_x+15, penguin_y+19
+triangle, p7_x-39, penguin_y-9, p7_x-39, penguin_y+21, p7_x-14, penguin_y+6
+triangle, p7_x+39, penguin_y-9, p7_x+39, penguin_y+21, p7_x+14, penguin_y+6
+keyframe frame2_7
+
+clear
+
+// Frame 3
+circle, 39, p7_x, penguin_y
+circle, 17, p7_x, penguin_y-39
+circle, 4, p7_x-7, penguin_y-42
+circle, 4, p7_x+7, penguin_y-42
+triangle, p7_x, penguin_y-29, p7_x-3, penguin_y-24, p7_x+3, penguin_y-24
+circle, 12, p7_x-15, penguin_y+19
+circle, 12, p7_x+15, penguin_y+19
+triangle, p7_x-29, penguin_y+11, p7_x-29, penguin_y+41, p7_x-9, penguin_y+26
+triangle, p7_x+29, penguin_y+11, p7_x+29, penguin_y+41, p7_x+9, penguin_y+26
+keyframe frame3_7
+
+clear
+
+// ===== PENGUIN 8 =====
+animation penguin8_dance
+// Frame 1
+circle, 41, p8_x, penguin_y
+circle, 18, p8_x, penguin_y-41
+circle, 4, p8_x-8, penguin_y-44
+circle, 4, p8_x+8, penguin_y-44
+triangle, p8_x, penguin_y-31, p8_x-3, penguin_y-26, p8_x+3, penguin_y-26
+circle, 13, p8_x-16, penguin_y+17
+circle, 13, p8_x+16, penguin_y+17
+triangle, p8_x-51, penguin_y-31, p8_x-51, penguin_y-1, p8_x-21, penguin_y-16
+triangle, p8_x+51, penguin_y-31, p8_x+51, penguin_y-1, p8_x+21, penguin_y-16
+keyframe frame1_8
+
+clear
+
+// Frame 2
+circle, 41, p8_x, penguin_y
+circle, 18, p8_x, penguin_y-41
+circle, 4, p8_x-8, penguin_y-44
+circle, 4, p8_x+8, penguin_y-44
+triangle, p8_x, penguin_y-31, p8_x-3, penguin_y-26, p8_x+3, penguin_y-26
+circle, 13, p8_x-16, penguin_y+17
+circle, 13, p8_x+16, penguin_y+17
+triangle, p8_x-41, penguin_y-11, p8_x-41, penguin_y+19, p8_x-16, penguin_y+4
+triangle, p8_x+41, penguin_y-11, p8_x+41, penguin_y+19, p8_x+16, penguin_y+4
+keyframe frame2_8
+
+clear
+
+// Frame 3
+circle, 41, p8_x, penguin_y
+circle, 18, p8_x, penguin_y-41
+circle, 4, p8_x-8, penguin_y-44
+circle, 4, p8_x+8, penguin_y-44
+triangle, p8_x, penguin_y-31, p8_x-3, penguin_y-26, p8_x+3, penguin_y-26
+circle, 13, p8_x-16, penguin_y+17
+circle, 13, p8_x+16, penguin_y+17
+triangle, p8_x-31, penguin_y+9, p8_x-31, penguin_y+39, p8_x-11, penguin_y+24
+triangle, p8_x+31, penguin_y+9, p8_x+31, penguin_y+39, p8_x+11, penguin_y+24
+keyframe frame3_8
+
+clear
+
+// ===== PENGUIN 9 =====
+animation penguin9_dance
+// Frame 1
+circle, 35, p9_x, penguin_y
+circle, 14, p9_x, penguin_y-35
+circle, 3, p9_x-6, penguin_y-38
+circle, 3, p9_x+6, penguin_y-38
+triangle, p9_x, penguin_y-25, p9_x-2, penguin_y-20, p9_x+2, penguin_y-20
+circle, 10, p9_x-13, penguin_y+25
+circle, 10, p9_x+13, penguin_y+25
+triangle, p9_x-45, penguin_y-25, p9_x-45, penguin_y+5, p9_x-15, penguin_y-10
+triangle, p9_x+45, penguin_y-25, p9_x+45, penguin_y+5, p9_x+15, penguin_y-10
+keyframe frame1_9
+
+clear
+
+// Frame 2
+circle, 35, p9_x, penguin_y
+circle, 14, p9_x, penguin_y-35
+circle, 3, p9_x-6, penguin_y-38
+circle, 3, p9_x+6, penguin_y-38
+triangle, p9_x, penguin_y-25, p9_x-2, penguin_y-20, p9_x+2, penguin_y-20
+circle, 10, p9_x-13, penguin_y+25
+circle, 10, p9_x+13, penguin_y+25
+triangle, p9_x-35, penguin_y-5, p9_x-35, penguin_y+25, p9_x-10, penguin_y+10
+triangle, p9_x+35, penguin_y-5, p9_x+35, penguin_y+25, p9_x+10, penguin_y+10
+keyframe frame2_9
+
+clear
+
+// Frame 3
+circle, 35, p9_x, penguin_y
+circle, 14, p9_x, penguin_y-35
+circle, 3, p9_x-6, penguin_y-38
+circle, 3, p9_x+6, penguin_y-38
+triangle, p9_x, penguin_y-25, p9_x-2, penguin_y-20, p9_x+2, penguin_y-20
+circle, 10, p9_x-13, penguin_y+25
+circle, 10, p9_x+13, penguin_y+25
+triangle, p9_x-25, penguin_y+15, p9_x-25, penguin_y+45, p9_x-5, penguin_y+30
+triangle, p9_x+25, penguin_y+15, p9_x+25, penguin_y+45, p9_x+5, penguin_y+30
+keyframe frame3_9
+
+clear
+
+// ===== PENGUIN 10 =====
+animation penguin10_dance
+// Frame 1
+circle, 43, p10_x, penguin_y
+circle, 19, p10_x, penguin_y-43
+circle, 5, p10_x-9, penguin_y-46
+circle, 5, p10_x+9, penguin_y-46
+triangle, p10_x, penguin_y-33, p10_x-4, penguin_y-28, p10_x+4, penguin_y-28
+circle, 14, p10_x-17, penguin_y+15
+circle, 14, p10_x+17, penguin_y+15
+triangle, p10_x-53, penguin_y-33, p10_x-53, penguin_y-3, p10_x-23, penguin_y-18
+triangle, p10_x+53, penguin_y-33, p10_x+53, penguin_y-3, p10_x+23, penguin_y-18
+keyframe frame1_10
+
+clear
+
+// Frame 2
+circle, 43, p10_x, penguin_y
+circle, 19, p10_x, penguin_y-43
+circle, 5, p10_x-9, penguin_y-46
+circle, 5, p10_x+9, penguin_y-46
+triangle, p10_x, penguin_y-33, p10_x-4, penguin_y-28, p10_x+4, penguin_y-28
+circle, 14, p10_x-17, penguin_y+15
+circle, 14, p10_x+17, penguin_y+15
+triangle, p10_x-43, penguin_y-13, p10_x-43, penguin_y+17, p10_x-18, penguin_y+2
+triangle, p10_x+43, penguin_y-13, p10_x+43, penguin_y+17, p10_x+18, penguin_y+2
+keyframe frame2_10
+
+clear
+
+// Frame 3
+circle, 43, p10_x, penguin_y
+circle, 19, p10_x, penguin_y-43
+circle, 5, p10_x-9, penguin_y-46
+circle, 5, p10_x+9, penguin_y-46
+triangle, p10_x, penguin_y-33, p10_x-4, penguin_y-28, p10_x+4, penguin_y-28
+circle, 14, p10_x-17, penguin_y+15
+circle, 14, p10_x+17, penguin_y+15
+triangle, p10_x-33, penguin_y+7, p10_x-33, penguin_y+37, p10_x-13, penguin_y+22
+triangle, p10_x+33, penguin_y+7, p10_x+33, penguin_y+37, p10_x+13, penguin_y+22
+keyframe frame3_10
+
+clear
+
+// ===== DANCE FLOOR =====
+print("Creating dance floor...")
+fill on
+// Draw checkered floor
+for (i=0; i<10; i=i+1) {
+    for (j=0; j<4; j=j+1) {
+        if ((i+j) % 2 == 0) {
+            rectangle, 50+i*100, penguin_y+80, 150+i*100, penguin_y+130
+        }
+    }
+}
+fill off
+
+// ===== START THE DANCE PARTY! =====
+print("\n🎵 STARTING PENGUIN DANCE PARTY! 🎵")
+print("10 Penguins dancing in sync!")
+print("================================")
+
+// Set animation speed
+delay 200
+
+// Start ALL penguins dancing simultaneously
+print("\nStarting all penguins at once...")
+play penguin1_dance
+play penguin2_dance  
+play penguin3_dance
+play penguin4_dance
+play penguin5_dance
+play penguin6_dance
+play penguin7_dance
+play penguin8_dance
+play penguin9_dance
+play penguin10_dance
+
+// ===== DISPLAY PENGUIN INFO =====
+delay 1000
+print("\n🐧 PENGUIN LINEUP 🐧")
+print("================================")
+print("1. Penguin 1 - Size: Large")
+print("2. Penguin 2 - Size: Medium")
+print("3. Penguin 3 - Size: Large")
+print("4. Penguin 4 - Size: Small")
+print("5. Penguin 5 - Size: X-Large")
+print("6. Penguin 6 - Size: Medium")
+print("7. Penguin 7 - Size: Medium-Large")
+print("8. Penguin 8 - Size: Large")
+print("9. Penguin 9 - Size: Small")
+print("10. Penguin 10 - Size: X-Large")
+print("")
+print("All penguins doing the same 3-step dance:")
+print("1. Arms up high")
+print("2. Arms at middle")
+print("3. Arms down low")
+print("")
+print("Checkered dance floor beneath them!")
+
+// ===== ADD DANCE MOVES TITLE =====
+delay 1500
+print("\n💃 DANCE MOVES IN PROGRESS 💃")
+print("================================")
+print("Frame 1: Penguin arms raised high")
+print("Frame 2: Penguin arms at waist level")
+print("Frame 3: Penguin arms lowered down")
+print("")
+print("Looping continuously...")
+
+// ===== KEEP DANCING =====
+delay 2000
+print("\n🐧🐧🐧 PENGUIN DANCE CONTINUES! 🐧🐧🐧")
+print("10 happy penguins dancing together!")
+print("")
+print("All animations synchronized perfectly")
+print("Creating a penguin chorus line!")
+print("")
+print("🎉 WADDLE ON! 🎉")
